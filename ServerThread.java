@@ -1,7 +1,7 @@
 import java.net.*;
 import java.io.*;
 
-public class ServerThread implements Runnable{
+public class ServerThread implements Runnable, Comparable<ServerThread> {
   private Socket clientSocket;
   private GameManager gm;
   private ObjectOutputStream out;
@@ -11,6 +11,16 @@ public class ServerThread implements Runnable{
     this.clientSocket = clientSocket;
     this.gm = gm;
     this.id = -1;
+  }
+
+  public int compareTo(ServerThread st) {
+    return id - st.getId();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    ServerThread st = (ServerThread)o;
+    return id == st.getId();
   }
 
   public int getId() {

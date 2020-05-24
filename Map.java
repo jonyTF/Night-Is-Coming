@@ -3,35 +3,32 @@ import java.io.Serializable;
 public class Map implements Serializable {
   public static final int INITIAL_PIXEL_TO_GRID_RATIO = 100;
 
-  public static final int EMPTY = 0;
-  public static final int TREE = 1;
-
-  private int[][] grid;
+  private DLList<GameObject> gameObjects;
   private double zoom;
+  private int width;
+  private int height;
 
   public Map(int width, int height) {
-    grid = new int[height][width];
+    gameObjects = new DLList<GameObject>();
     zoom = 1;
+    this.width = width;
+    this.height = height;
   }
 
   public void generateMap() {
     clearMap();
 
-    int randR = (int)(Math.random() * grid.length);
-    int randC = (int)(Math.random() * grid[0].length);
-    grid[randR][randC] = TREE;
+    int randX = (int)(Math.random() * width);
+    int randY = (int)(Math.random() * height);
+    addTree(randX, randY);
   }
 
   public void clearMap() {
-    for (int r = 0; r < grid.length; r++) {
-      for (int c = 0; c < grid[r].length; c++) {
-        grid[r][c] = EMPTY;
-      }
-    }
+    gameObjects = new DLList<GameObject>();
   }
 
-  public int[][] getGrid() {
-    return grid;
+  public DLList<GameObject> getGameObjects() {
+    return gameObjects;
   }
 
   public void setZoom(int zoom) {
@@ -47,10 +44,36 @@ public class Map implements Serializable {
   }
 
   public int getWidth() {
-    return grid[0].length;
+    return width;
   }
 
   public int getHeight() {
-    return grid.length;
+    return height;
+  }
+  
+  private void addTree(int x, int y) {
+    gameObjects.add(
+      new GameObject(
+        GameObject.TREE, 
+        x, 
+        y, 
+        GameObject.TREE_WH, 
+        GameObject.TREE_WH, 
+        GameObject.TREE_HP, 
+        new int[]{ 
+          GameObject.IS_ROUND, 
+          GameObject.GET_SMALLER_ON_DAMAGE,
+          GameObject.IS_COLLIDABLE
+        })
+    );
+  }
+
+  public static boolean isColliding(GameObject o1, GameObject o2) {
+    if (o1.hasFlag(GameObject.IS_ROUND) && o2.hasFlag(GameObject.IS_ROUND)) {
+
+    } else {
+
+    }
+    return false;
   }
 }

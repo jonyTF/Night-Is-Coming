@@ -1,6 +1,6 @@
 import java.io.Serializable;
 
-public class DLList < E > implements Serializable {
+public class DLList < E extends Comparable > implements Serializable {
     private Node < E > dummy;
     private int size;
 

@@ -1,6 +1,6 @@
 import java.io.Serializable;
 
-public class MyHashMap<K, V> implements Serializable {
+public class MyHashMap<K extends Comparable, V> implements Serializable {
   private DLList<K> keys;
   private Object[] values;
 
