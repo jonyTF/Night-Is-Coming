@@ -144,8 +144,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
   }
 
   private void drawPlayer(Graphics2D g2, Player p) {
-    GameObject playerObject = p.getGameObject();
-    int playerWH = (int)getScaledValue(playerObject.getWidth());
+    int playerWH = (int)getScaledValue(p.getWidth());
     int handWH = 3*playerWH/10;
     
     // Get body coords
@@ -187,7 +186,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
   private void drawBackground(Graphics2D g2) {
     // Draw the objects contained in map
 
-    DLList<GameObject> gameObjects = gameData.getMap().getGameObjects();
+    DLList<GameObject> gameObjects = gameData.getGameMap().getGameObjects();
 
     for (int i = 0; i < gameObjects.size(); i++) {
       GameObject o = gameObjects.get(i);
@@ -237,7 +236,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
   private double getScaledValue(double val) {
     // Converts grid coordinates to screen coordinates.
     
-    int ratio = gameData.getMap().getPixelToGridRatio();
+    int ratio = gameData.getGameMap().getPixelToGridRatio();
     return val*ratio; 
   }
 
@@ -398,19 +397,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
       // Get angle mouse is from center 
       double x = e.getX() - SCREEN_WIDTH/2;
       double y = SCREEN_HEIGHT/2 - e.getY();
-      double angleFacing;
-      if (x != 0) {
-        angleFacing = Math.atan(y/x);
-        if (x < 0)
-          angleFacing += Math.PI;
-        if (angleFacing < 0)
-          angleFacing += 2*Math.PI;
-      } else {
-        if (y > 0)
-          angleFacing = Math.PI/2;
-        else
-          angleFacing = 3*Math.PI/2;
-      }
+      double angleFacing = Player.calculateAngle(x, y);
 
       Player currentPlayer = getCurrentPlayer();
       if (currentPlayer != null)
@@ -478,7 +465,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
           for (int i = 0; i < ids.size(); i++) {
             Player p = playerMap.get(ids.get(i));
             if (ids.get(i) == id) 
-              p.move(keyDown);
+              p.move(keyDown, gameData.getGameMap());
             else
               p.move();
           }

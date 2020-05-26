@@ -1,6 +1,8 @@
 import java.io.Serializable;
 
 public class GameObject implements Serializable, Comparable<GameObject> {
+  // X and Y are the center coordinates of the object unless specified otherwise
+
   private int type;
   private double x;
   private double y;
@@ -14,6 +16,7 @@ public class GameObject implements Serializable, Comparable<GameObject> {
   public static final int IS_ROUND = 0;
   public static final int GET_SMALLER_ON_DAMAGE = 1;
   public static final int IS_COLLIDABLE = 2; // If you can collide with this object
+  public static final int TL_COORDS = 3; // If X and Y are the top left coordinates
 
   public static final int PLAYER = 0;
   public static final int TREE = 1;
@@ -83,6 +86,14 @@ public class GameObject implements Serializable, Comparable<GameObject> {
     return y;
   }
 
+  public void setX(double x) {
+    this.x = x;
+  }
+
+  public void setY(double y) {
+    this.y = y;
+  }
+
   public int getHp() {
     return hp;
   }
@@ -110,6 +121,14 @@ public class GameObject implements Serializable, Comparable<GameObject> {
       return minHeight + (double)(hp / maxHp)*(initialHeight - minHeight);
     } else {
       return initialHeight;
+    }
+  }
+
+  public AABB getAABB() {
+    if (hasFlag(TL_COORDS)) {
+      return new AABB(x, y, x+getWidth(), y+getHeight());
+    } else {
+      return new AABB(x-getWidth()/2, y-getHeight()/2, x+getWidth()/2, y+getHeight()/2);
     }
   }
 

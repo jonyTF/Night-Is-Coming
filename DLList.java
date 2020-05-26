@@ -1,6 +1,9 @@
 import java.io.Serializable;
+import java.util.Comparator;
 
 public class DLList < E extends Comparable > implements Serializable {
+    public static final int INSERTION_SORT = 0;
+
     private Node < E > dummy;
     private int size;
 
@@ -136,5 +139,37 @@ public class DLList < E extends Comparable > implements Serializable {
 
     public int size() {
         return size;
+    }
+
+    public void sort(int type) {
+        sort(type, new DefaultComparator());
+    }
+
+    public void sort(int type, Comparator comparator) {
+        switch (type) {
+            case INSERTION_SORT:
+                insertionSort(comparator);    
+                break;
+        }
+    }
+
+    private void insertionSort(Comparator comparator) {
+        if (size > 1) {
+            Node<E> outer = dummy.next().next();
+            for (int i = 1; i < size; i++) {
+                Node<E> inner = outer;
+                for (int j = i; j > 0; j--) {
+                    if (comparator.compare(inner.prev().get(), inner.get()) < 0) {
+                        // If previous is less than current
+                        break;
+                    }
+                    E tmp = inner.get();
+                    inner.set(inner.prev().get());
+                    inner.prev().set(tmp);
+                    inner = inner.prev();
+                }
+                outer = outer.next();
+            }
+        }
     }
 }

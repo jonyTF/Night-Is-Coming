@@ -7,6 +7,8 @@ public class Server {
     ServerSocket serverSocket = new ServerSocket(port);
 
     GameManager gm = new GameManager();
+    Thread gmThread = new Thread(gm);
+    gmThread.start();
 
     while (true) {
       System.out.println("Waiting for connection...");

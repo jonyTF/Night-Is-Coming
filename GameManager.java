@@ -42,6 +42,7 @@ public class GameManager implements Runnable {
 
   public void run() {
     while (true) {
+      gameData.getGameMap().sortGameObjects(AABB.X);
       try {
         Thread.sleep(1000);
       } catch (InterruptedException e) {
@@ -53,8 +54,8 @@ public class GameManager implements Runnable {
   public int addPlayer() {
     curId++;
 
-    int w = gameData.getMap().getWidth();
-    int h = gameData.getMap().getHeight();
+    int w = gameData.getGameMap().getWidth();
+    int h = gameData.getGameMap().getHeight();
     double x = (int)(Math.random() * w/2 + w/4);
     double y = (int)(Math.random() * h/2 + h/4);
     gameData.addPlayer(new Player(x, y, curId));

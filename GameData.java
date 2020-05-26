@@ -3,12 +3,12 @@ import java.io.Serializable;
 public class GameData implements Serializable {
   public static final int MAX_PLAYERS = 100;
   private MyHashMap<Integer, Player> playerMap;
-  private Map map;
+  private GameMap gameMap;
 
   public GameData() {
     playerMap = new MyHashMap<Integer, Player>(MAX_PLAYERS);
-    map = new Map(10, 10);
-    map.generateMap();
+    gameMap = new GameMap(10, 10);
+    gameMap.generateGameMap();
   }
 
   public void addPlayer(Player p) {
@@ -27,7 +27,7 @@ public class GameData implements Serializable {
     return playerMap;
   }
 
-  public Map getMap() {
-    return map;
+  public GameMap getGameMap() {
+    return gameMap;
   }
 }

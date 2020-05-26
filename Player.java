@@ -1,17 +1,15 @@
 import java.io.Serializable;
 import java.util.Date;
 
-public class Player implements Serializable {
+public class Player extends GameObject implements Serializable {
   public static final double INITIAL_SPEED = 3;
 
-  private double x;
-  private double y;
   private int id;
   private double speed;
   private double angleFacing;
   private boolean[] keyDown;
 
-  private Map map;
+  private GameMap gameMap;
 
   private long prevMoveTime;
   private long curTime;
@@ -19,19 +17,7 @@ public class Player implements Serializable {
   private GameObject gameObject;
   
   public Player(double x, double y, int id) {
-    this.x = x;
-    this.y = y;
-    this.id = id;
-    this.speed = INITIAL_SPEED;
-    this.angleFacing = 0;
-    this.keyDown = new boolean[] {false, false, false, false};
-
-    Date date = new Date();
-    this.curTime = date.getTime();
-    this.prevMoveTime = curTime;
-    this.map = null;
-
-    this.gameObject = new GameObject(
+    super(
       GameObject.PLAYER, 
       x, 
       y, 
@@ -43,18 +29,20 @@ public class Player implements Serializable {
         GameObject.IS_COLLIDABLE 
       }
     );
+
+    this.id = id;
+    this.speed = INITIAL_SPEED;
+    this.angleFacing = 0;
+    this.keyDown = new boolean[] {false, false, false, false};
+
+    Date date = new Date();
+    this.curTime = date.getTime();
+    this.prevMoveTime = curTime;
+    this.gameMap = null;
   }
 
   public GameObject getGameObject() {
     return gameObject;
-  }
-
-  public double getX() {
-    return x;
-  }
-
-  public double getY() {
-    return y;
   }
 
   public int getId() {
@@ -74,34 +62,34 @@ public class Player implements Serializable {
   }
 
   public void moveUp() {
-    y -= speed*deltaTime()/1000;
+    setY(getY() - speed*deltaTime()/1000);
   }
 
   public void moveDown() {
-    y += speed*deltaTime()/1000;
+    setY(getY() + speed*deltaTime()/1000);
   }
 
   public void moveLeft() {
-    x -= speed*deltaTime()/1000;
+    setX(getX() - speed*deltaTime()/1000);
   }
 
   public void moveRight() {
-    x += speed*deltaTime()/1000;
+    setX(getX() + speed*deltaTime()/1000);
   }
 
   public long deltaTime() {
     return curTime-prevMoveTime;
   }
 
-  public void move(boolean[] keyDown/*, Map map*/) {
+  public void move(boolean[] keyDown, GameMap gameMap) {
     this.keyDown = keyDown;
-    this.map = map;
+    //this.gameMap = gameMap;
     Date date = new Date();
     prevMoveTime = curTime;
     curTime = date.getTime();
 
     if (keyDown[Screen.KEY_W] || keyDown[Screen.KEY_A] || keyDown[Screen.KEY_S] || keyDown[Screen.KEY_D]) {
-      double[] oldPos = {x, y};
+      double[] oldPos = {getX(), getY()};
 
       if (keyDown[Screen.KEY_W])
         moveUp();
@@ -117,12 +105,55 @@ public class Player implements Serializable {
 
       // If colliding with another object,
       // Move player back to oldPos
-      // x = oldPos[0];
-      // y = oldPos[1];
+      if (gameMap != null) {
+        DLList<GameObject> gameObjects = gameMap.getGameObjects();
+        for (int i = 0; i < gameObjects.size(); i++) {
+          GameObject gameObject = gameObjects.get(i);
+          
+          // If collision not possible anymore, break
+          if (gameObject.getAABB().getMins()[AABB.X] > this.getAABB().getMaxes()[AABB.X]) {
+            break;
+          }
+
+          boolean colliding = GameMap.isColliding(this, gameObject);
+          if (colliding) {
+            System.out.println("COLLIDING " + curTime);
+            double diffX = oldPos[0] - getX();
+            double diffY = oldPos[1] - getY();
+            double angle = calculateAngle(diffX, diffY);
+            double moveDist = 0.01;
+            double moveX = moveDist*Math.cos(angle);
+            double moveY = moveDist*Math.sin(angle);
+            while (colliding) {
+              setX(getX() + moveX);
+              setY(getY() + moveY);
+
+              colliding = GameMap.isColliding(this, gameObject);
+            }
+          }
+        }
+      }
     }
   }
 
   public void move() {
-    move(keyDown);
+    move(keyDown, null);
+  }
+
+  public static double calculateAngle(double x, double y) {
+    double angle;
+    if (x != 0) {
+      angle = Math.atan(y/x);
+      if (x < 0)
+        angle += Math.PI;
+      if (angle < 0)
+        angle += 2*Math.PI;
+    } else {
+      if (y > 0)
+        angle = Math.PI/2;
+      else
+        angle = 3*Math.PI/2;
+    }
+    return angle;
   }
 }
