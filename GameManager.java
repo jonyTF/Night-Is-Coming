@@ -20,31 +20,69 @@ public class GameManager implements Runnable {
     serverThreads.remove(st);
   }
 
-  public synchronized void broadcast(int type, Object object) {
+  public void broadcast(int type, Object object) {
     Data data = new Data(type, object);
+    broadcast(data);
+  }
+
+  public synchronized void broadcast(Data data) {
     for (int i = 0; i < serverThreads.size(); i++) {
       serverThreads.get(i).writeObject(data);
     }
+  }
+
+  public void update(Data data) {
+    Object object = data.getObject();
+    switch (data.getType()) {
+      case Data.UPDATE_GAME_DATA:
+        setGameData((GameData)object);
+        break;
+      case Data.UPDATE_PLAYER:
+        updatePlayer((Player)object);
+        break;
+      case Data.UPDATE_GAME_OBJECT:
+        updateGameObject((GameObject)object);
+        break;
+    }
+    broadcast(data);
   }
 
   public GameData getGameData() {
     return gameData;
   }
 
-  public void broadcastGameData() {
-    broadcast(Data.UPDATE_GAME_DATA, gameData);
-  }
-
   public void setGameData(GameData gameData) {
     this.gameData = gameData;
-    broadcastGameData();
+  }
+
+  public void updateGameObject(GameObject gameObject) {
+    gameData.updateGameObject(gameObject);
   }
 
   public void run() {
     while (true) {
-      gameData.getGameMap().sortGameObjects(AABB.X);
+      // TODO: reimplement?
+      //gameData.getGameMap().sortGameObjects(AABB.X);
+      
+      // Replaces object with remnants when object is dead
+      MyHashMap<Integer, GameObject> gameObjects = gameData.getGameMap().getGameObjects();
+      DLList<Integer> keys = gameObjects.getKeys();
+      for (int i = 0; i < keys.size(); i++) {
+        GameObject gameObject = gameObjects.get(keys.get(i));
+        if (gameObject.isDead()) {
+          gameObjects.remove(keys.get(i));
+          DLList<GameObject> remnants = gameObject.getRemnants();
+          for (int j = 0; j < remnants.size(); j++) {
+            GameObject remnant = remnants.get(j);
+            gameObjects.put(remnant.getId(), remnant);
+            broadcast(Data.UPDATE_GAME_OBJECT, remnant);
+          }
+        }
+      }
+
+
       try {
-        Thread.sleep(1000);
+        Thread.sleep(50);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
       }
@@ -66,7 +104,6 @@ public class GameManager implements Runnable {
 
   public void updatePlayer(Player p) {
     gameData.updatePlayer(p);
-    broadcast(Data.UPDATE_PLAYER, gameData.getPlayerMap().get(p.getId()));
   }
 
   public void removePlayer(int id) {

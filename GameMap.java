@@ -2,14 +2,15 @@ import java.io.Serializable;
 
 public class GameMap implements Serializable {
   public static final int INITIAL_PIXEL_TO_GRID_RATIO = 100;
+  public static int curId = 0;
 
-  private DLList<GameObject> gameObjects;
+  private MyHashMap<Integer, GameObject> gameObjects;
   private double zoom;
   private int width;
   private int height;
 
   public GameMap(int width, int height) {
-    gameObjects = new DLList<GameObject>();
+    gameObjects = new MyHashMap<Integer, GameObject>();
     zoom = 1;
     this.width = width;
     this.height = height;
@@ -26,10 +27,14 @@ public class GameMap implements Serializable {
   }
 
   public void clearGameMap() {
-    gameObjects = new DLList<GameObject>();
+    gameObjects = new MyHashMap<Integer, GameObject>();
   }
 
-  public DLList<GameObject> getGameObjects() {
+  public void updateGameObject(GameObject o) {
+    gameObjects.put(o.getId(), o);
+  }
+
+  public MyHashMap<Integer, GameObject> getGameObjects() {
     return gameObjects;
   }
 
@@ -58,8 +63,11 @@ public class GameMap implements Serializable {
   }
   
   private void addTree(int x, int y) {
-    gameObjects.add(
+    int id = getNewId();
+    gameObjects.put( 
+      id,
       new GameObject(
+        id,
         GameObject.TREE, 
         x, 
         y, 
@@ -72,5 +80,9 @@ public class GameMap implements Serializable {
           GameObject.IS_COLLIDABLE
         })
     );
+  }
+
+  public static int getNewId() {
+    return curId++;
   }
 }

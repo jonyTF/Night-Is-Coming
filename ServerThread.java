@@ -55,22 +55,13 @@ public class ServerThread implements Runnable, Comparable<ServerThread> {
 
       while (true) {
         Data data = (Data)in.readObject();
-        Object object = data.getObject();
-        switch (data.getType()) {
-          case Data.UPDATE_GAME_DATA:
-            gm.setGameData((GameData)object);
-            break;
-          case Data.UPDATE_PLAYER:
-            gm.updatePlayer((Player)object);
-            break;
-        }
+        gm.update(data);
       }
     } catch (IOException e) {
       System.out.println("Connection closed");
       System.out.println(e.getMessage());
 
       gm.removePlayer(id);
-      gm.broadcastGameData();
     } catch (ClassNotFoundException e) {
       System.out.println(e);
     }

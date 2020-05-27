@@ -40,12 +40,14 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
   private final Color treeColor = new Color(72, 166, 70);
   private final Color grassColor = new Color(165, 212, 106);
   private final Color woodColor = new Color(166, 105, 70);
+  private final Color lightWoodColor = new Color(235, 209, 195);
 
   private ObjectOutputStream out;
   private int id;
   private GameData gameData;
 
   private boolean[] keyDown;
+  private boolean mouseDown;
   private RenderingHints hints;
   private boolean windowFocused;
   private boolean playing;
@@ -66,6 +68,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     gameData = new GameData();
     id = -1;
     keyDown = new boolean[] {false, false, false, false};
+    mouseDown = false;
 
     hints = new RenderingHints(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
     hints.put(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -186,13 +189,17 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
   private void drawBackground(Graphics2D g2) {
     // Draw the objects contained in map
 
-    DLList<GameObject> gameObjects = gameData.getGameMap().getGameObjects();
+    MyHashMap<Integer, GameObject> gameObjects = gameData.getGameMap().getGameObjects();
+    DLList<Integer> keys = gameObjects.getKeys();
 
-    for (int i = 0; i < gameObjects.size(); i++) {
-      GameObject o = gameObjects.get(i);
+    for (int i = 0; i < keys.size(); i++) {
+      GameObject o = gameObjects.get(keys.get(i));
       switch (o.getType()) {
         case GameObject.TREE:
           drawTree(g2, o);
+          break;
+        case GameObject.WOOD:
+          drawWood(g2, o);
           break;
       }
     }
@@ -210,12 +217,27 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     fillOvalCenter(g2, pos[0], pos[1], leavesWH, leavesWH);
   }
 
+  private void drawWood(Graphics2D g2, GameObject woodObject) {
+    int[] pos = getTransformedPos(woodObject.getX(), woodObject.getY(), getCurrentPlayer());
+    int woodWH = (int)getScaledValue(woodObject.getWidth());
+
+    g2.setColor(woodColor);
+    fillRectCenter(g2, pos[0], pos[1], woodWH, woodWH);
+
+    g2.setColor(lightWoodColor);
+    fillOvalCenter(g2, pos[0], pos[1]-woodWH/2, woodWH, (int)(0.4*woodWH));
+  }
+
   private void fillOvalCenter(Graphics2D g2, int x, int y, int w, int h) {
     g2.fillOval(x-w/2, y-h/2, w, h);
   }
 
   private void drawOvalCenter(Graphics2D g2, int x, int y, int w, int h) {
     g2.drawOval(x-w/2, y-h/2, w, h);
+  }
+
+  private void fillRectCenter(Graphics2D g2, int x, int y, int w, int h) {
+    g2.fillRect(x-w/2, y-h/2, w, h);
   }
 
   private Player getCurrentPlayer() {
@@ -300,6 +322,9 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
       case Data.UPDATE_GAME_DATA:
         gameData = (GameData)object;
         break;
+      case Data.UPDATE_GAME_OBJECT:
+        gameData.updateGameObject((GameObject)object);
+        break;
       case Data.ADD_PLAYER:
         gameData.addPlayer((Player)object);
         break;
@@ -329,6 +354,18 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
       if (out != null) {
         out.reset();
         out.writeObject(new Data(Data.UPDATE_PLAYER, getCurrentPlayer()));
+      }
+    } catch (IOException e) {
+      System.out.println(e);
+    }
+  }
+
+  private void updateGameObject(GameObject gameObject) {
+    try {
+      if (out != null) {
+        out.reset();
+        System.out.println("updating " + gameObject);
+        out.writeObject(new Data(Data.UPDATE_GAME_OBJECT, gameObject));
       }
     } catch (IOException e) {
       System.out.println(e);
@@ -387,8 +424,27 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
   public void mouseClicked(MouseEvent e) {}
   public void mouseEntered(MouseEvent e) {}
   public void mouseExited(MouseEvent e) {}
-  public void mousePressed(MouseEvent e) {}
-  public void mouseReleased(MouseEvent e) {}
+
+  public void mousePressed(MouseEvent e) {
+    mouseDown = true;
+    GameObject objectFacing = getCurrentPlayer().getObjectFacing();
+    if (objectFacing == null) {
+      playSound("sound/whoosh1.wav");
+    } else {
+      switch (objectFacing.getType()) {
+        case GameObject.TREE:
+          playSound("sound/tree_impact.wav");
+          objectFacing.damage(getCurrentPlayer().getDamage());
+          System.out.println("damaged!");
+          break;
+      }
+      updateGameObject(objectFacing);
+    }
+  }
+  
+  public void mouseReleased(MouseEvent e) {
+    mouseDown = false;
+  }
 
   // Mouse Motion events
   public void mouseDragged(MouseEvent e) {}
@@ -453,13 +509,15 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
   private class AnimationThread extends Thread {
     public void run() {
       while (true) {
-        /*
-        Player p = getCurrentPlayer();
-        if (p != null)
-          p.move(keyDown);
-        */
-
         if (playing) {
+          
+          // TODO: animate other players' movement so it's a smooth transition from one point to another
+          Player p = getCurrentPlayer();
+          if (p != null)
+            p.move(keyDown, gameData.getGameMap());
+          
+
+          /*
           MyHashMap<Integer, Player> playerMap = gameData.getPlayerMap();
           DLList<Integer> ids = playerMap.getKeys();
           for (int i = 0; i < ids.size(); i++) {
@@ -469,8 +527,9 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
             else
               p.move();
           }
+          */
 
-          System.out.println("Player Facing: " + getCurrentPlayer().getObjectFacing());
+          //System.out.println("Player Facing: " + getCurrentPlayer().getObjectFacing());
           
           repaint();
           

@@ -10,6 +10,7 @@ public class Player extends GameObject implements Serializable {
 
   private int id;
   private double speed;
+  private int damage;
   private double angleFacing;
   private boolean[] keyDown;
   private DLList<GameObject> objectsCloseTo;
@@ -19,6 +20,7 @@ public class Player extends GameObject implements Serializable {
   
   public Player(double x, double y, int id) {
     super(
+      id,
       GameObject.PLAYER, 
       x, 
       y, 
@@ -33,6 +35,7 @@ public class Player extends GameObject implements Serializable {
 
     this.id = id;
     this.speed = INITIAL_SPEED;
+    this.damage = 1;
     this.angleFacing = 0;
     this.keyDown = new boolean[] {false, false, false, false};
     this.objectsCloseTo = new DLList<GameObject>();
@@ -48,6 +51,10 @@ public class Player extends GameObject implements Serializable {
 
   public double getSpeed() {
     return speed;
+  }
+
+  public int getDamage() {
+    return damage;
   }
 
   public void setAngleFacing(double angleFacing) {
@@ -104,11 +111,13 @@ public class Player extends GameObject implements Serializable {
       if (gameMap != null) {
         objectsCloseTo = new DLList<GameObject>();
 
-        DLList<GameObject> gameObjects = gameMap.getGameObjects();
-        for (int i = 0; i < gameObjects.size(); i++) {
-          GameObject gameObject = gameObjects.get(i);
+        MyHashMap<Integer, GameObject> gameObjects = gameMap.getGameObjects();
+        DLList<Integer> keys = gameObjects.getKeys();
+        for (int i = 0; i < keys.size(); i++) {
+          GameObject gameObject = gameObjects.get(keys.get(i));
           
           // If collision not possible anymore, break
+          // TODO: reimplement this ?
           /*if (gameObject.getAABB().getMins()[AABB.X] > this.getAABB().getMaxes()[AABB.X]) {
             break;
           }*/

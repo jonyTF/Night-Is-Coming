@@ -3,6 +3,8 @@ import java.io.Serializable;
 public class GameObject implements Serializable, Comparable<GameObject> {
   // X and Y are the center coordinates of the object unless specified otherwise
 
+  int id;
+
   private int type;
   private double x;
   private double y;
@@ -17,29 +19,37 @@ public class GameObject implements Serializable, Comparable<GameObject> {
   public static final int GET_SMALLER_ON_DAMAGE = 1;
   public static final int IS_COLLIDABLE = 2; // If you can collide with this object
   public static final int TL_COORDS = 3; // If X and Y are the top left coordinates
+  public static final int IS_COLLECTABLE = 4;
 
   public static final int PLAYER = 0;
   public static final int TREE = 1;
+  public static final int WOOD = 2;
 
   public static final double PLAYER_WH = 0.5;
   public static final double TREE_WH = 0.3;
+  public static final double WOOD_WH = 0.2;
 
   public static final int PLAYER_HP = 100;
-  public static final int TREE_HP = 10;
+  public static final int TREE_HP = 5;
 
-  public GameObject(double x, double y) {
-    this(-1, x, y, 0, 0, 1, 1, new int[0]);
+  public GameObject(int id, double x, double y) {
+    this(id, -1, x, y, 0, 0, 1, 1, new int[0]);
   }
 
-  public GameObject(int type, double x, double y, double initialWidth, double initialHeight, int hp) {
-    this(type, x, y, initialWidth, initialHeight, hp, hp, new int[0]);
+  public GameObject(int id, int type, double x, double y, double initialWidth, double initialHeight, int[] flags) {
+    this(id, type, x, y, initialWidth, initialHeight, 1, 1, flags);
   }
 
-  public GameObject(int type, double x, double y, double initialWidth, double initialHeight, int hp, int[] flags) {
-    this(type, x, y, initialWidth, initialHeight, hp, hp, flags);
+  public GameObject(int id, int type, double x, double y, double initialWidth, double initialHeight, int hp) {
+    this(id, type, x, y, initialWidth, initialHeight, hp, hp, new int[0]);
   }
 
-  public GameObject(int type, double x, double y, double initialWidth, double initialHeight, int hp, int maxHp, int[] flags) {
+  public GameObject(int id, int type, double x, double y, double initialWidth, double initialHeight, int hp, int[] flags) {
+    this(id, type, x, y, initialWidth, initialHeight, hp, hp, flags);
+  }
+
+  public GameObject(int id, int type, double x, double y, double initialWidth, double initialHeight, int hp, int maxHp, int[] flags) {
+    this.id = id;
     this.type = type;
     this.x = x;
     this.y = y;
@@ -52,6 +62,10 @@ public class GameObject implements Serializable, Comparable<GameObject> {
     for (int i = 0; i < flags.length; i++) {
       this.flags.add(flags[i]);
     }
+  }
+
+  public int getId() {
+    return id;
   }
 
   public int compareTo(GameObject go) {
@@ -123,7 +137,7 @@ public class GameObject implements Serializable, Comparable<GameObject> {
   public double getWidth() {
     if (hasFlag(GET_SMALLER_ON_DAMAGE)) {
       double minWidth = initialWidth/5;
-      return minWidth + (double)(hp / maxHp)*(initialWidth - minWidth);
+      return minWidth + ((double)hp / maxHp)*(initialWidth - minWidth);
     } else {
       return initialWidth;
     }
@@ -132,7 +146,7 @@ public class GameObject implements Serializable, Comparable<GameObject> {
   public double getHeight() {
     if (hasFlag(GET_SMALLER_ON_DAMAGE)) {
       double minHeight = initialHeight/5;
-      return minHeight + (double)(hp / maxHp)*(initialHeight - minHeight);
+      return minHeight + ((double)hp / maxHp)*(initialHeight - minHeight);
     } else {
       return initialHeight;
     }
@@ -160,7 +174,10 @@ public class GameObject implements Serializable, Comparable<GameObject> {
   }
 
   public void damage(int amount) {
-    hp -= amount;
+    if (hp - amount > 0)
+      hp -= amount;
+    else
+      hp = 0;
   }
 
   public void heal(int amount) {
@@ -168,6 +185,22 @@ public class GameObject implements Serializable, Comparable<GameObject> {
       hp += amount;
     else
       hp = maxHp;
+  }
+
+  public boolean isDead() {
+    return hp == 0;
+  }
+
+  public DLList<GameObject> getRemnants() {
+    DLList<GameObject> remnants = new DLList<GameObject>();
+    switch (type) {
+      case TREE:
+        remnants.add(new GameObject(GameMap.getNewId(), WOOD, x-1.1*WOOD_WH, y-1.1*WOOD_WH, WOOD_WH, WOOD_WH, new int[]{IS_COLLECTABLE}));
+        remnants.add(new GameObject(GameMap.getNewId(), WOOD, x+1.1*WOOD_WH, y+1.1*WOOD_WH, WOOD_WH, WOOD_WH, new int[]{IS_COLLECTABLE}));
+        break;
+    }
+    
+    return remnants;
   }
 
   public boolean isCollidingWith(GameObject o) {

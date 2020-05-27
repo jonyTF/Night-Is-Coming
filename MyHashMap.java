@@ -1,4 +1,5 @@
 import java.io.Serializable;
+import java.util.Comparator;
 
 public class MyHashMap<K extends Comparable, V> implements Serializable {
   private DLList<K> keys;
@@ -34,5 +35,13 @@ public class MyHashMap<K extends Comparable, V> implements Serializable {
 
   public DLList<K> getKeys() {
     return keys;
+  }
+
+  public void sort(int type) {
+    keys.sort(type);
+  }
+
+  public void sort(int type, Comparator comparator) {
+    keys.sort(type, comparator);
   }
 }

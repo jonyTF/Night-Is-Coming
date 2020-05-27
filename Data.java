@@ -6,6 +6,7 @@ public class Data implements Serializable {
   public static final int REMOVE_PLAYER = 2;
   public static final int UPDATE_GAME_DATA = 3;
   public static final int ASSIGN_ID = 4;
+  public static final int UPDATE_GAME_OBJECT = 5;
 
   private int type;
   private Object object;
