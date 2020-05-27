@@ -65,24 +65,10 @@ public class GameMap implements Serializable {
         GameObject.TREE_WH, 
         GameObject.TREE_HP, 
         new int[]{ 
-          GameObject.IS_ROUND, 
+          GameObject.IS_CIRCLE, 
           GameObject.GET_SMALLER_ON_DAMAGE,
           GameObject.IS_COLLIDABLE
         })
     );
-  }
-
-  public static boolean isColliding(GameObject o1, GameObject o2) {
-    /*if (o1.hasFlag(GameObject.IS_ROUND) && o2.hasFlag(GameObject.IS_ROUND)) {*/
-
-    /*} else {*/
-    AABB rect1 = o1.getAABB();
-    AABB rect2 = o2.getAABB();
-    if (rect1.top() > rect2.top() && rect1.top() < rect2.bottom() && rect1.left() > rect2.left() && rect1.left() < rect2.right())
-      return true;
-    if (rect2.top() > rect1.top() && rect2.top() < rect1.bottom() && rect2.left() > rect1.left() && rect2.left() < rect1.right())
-      return true;
-    //}
-    return false;
   }
 }

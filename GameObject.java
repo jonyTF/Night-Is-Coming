@@ -13,7 +13,7 @@ public class GameObject implements Serializable, Comparable<GameObject> {
 
   private DLList<Integer> flags;
 
-  public static final int IS_ROUND = 0;
+  public static final int IS_CIRCLE = 0;
   public static final int GET_SMALLER_ON_DAMAGE = 1;
   public static final int IS_COLLIDABLE = 2; // If you can collide with this object
   public static final int TL_COORDS = 3; // If X and Y are the top left coordinates
@@ -124,6 +124,13 @@ public class GameObject implements Serializable, Comparable<GameObject> {
     }
   }
 
+  public double getRadius() {
+    if (hasFlag(IS_CIRCLE)) {
+      return getWidth()/2;
+    }
+    return 0;
+  }
+
   public AABB getAABB() {
     if (hasFlag(TL_COORDS)) {
       return new AABB(x, y, x+getWidth(), y+getHeight());
@@ -149,5 +156,28 @@ public class GameObject implements Serializable, Comparable<GameObject> {
       hp += amount;
     else
       hp = maxHp;
+  }
+
+  public boolean isCollidingWith(GameObject o) {
+    return isColliding(this, o);
+  }
+
+  public static boolean isColliding(GameObject o1, GameObject o2) {
+    if (o1.hasFlag(IS_CIRCLE) && o2.hasFlag(IS_CIRCLE)) {
+      // Circle collision
+      double xDiff = o1.getX() - o2.getX();
+      double yDiff = o1.getY() - o2.getY();
+      double dist = Math.sqrt(xDiff*xDiff + yDiff*yDiff);
+
+      if (dist < o1.getRadius() + o2.getRadius())
+        return true;
+    } else {
+      // Rectangle collision
+      AABB rect1 = o1.getAABB();
+      AABB rect2 = o2.getAABB();
+      if (rect1.left() < rect2.right() && rect1.right() > rect2.left() && rect1.top() < rect2.bottom() && rect1.bottom() > rect2.top())
+        return true;
+    }
+    return false;
   }
 }

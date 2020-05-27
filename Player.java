@@ -25,7 +25,7 @@ public class Player extends GameObject implements Serializable {
       GameObject.PLAYER_WH, 
       GameObject.PLAYER_HP, 
       new int[]{ 
-        GameObject.IS_ROUND, 
+        GameObject.IS_CIRCLE, 
         GameObject.IS_COLLIDABLE 
       }
     );
@@ -115,9 +115,12 @@ public class Player extends GameObject implements Serializable {
             break;
           }
 
-          boolean colliding = GameMap.isColliding(this, gameObject);
+          boolean colliding = this.isCollidingWith(gameObject);
           if (colliding) {
-            System.out.println("COLLIDING " + curTime);
+            setX(oldPos[0]);
+            setY(oldPos[1]);
+          }
+          /*if (colliding) {
             double diffX = oldPos[0] - getX();
             double diffY = oldPos[1] - getY();
             double angle = calculateAngle(diffX, diffY);
@@ -128,9 +131,9 @@ public class Player extends GameObject implements Serializable {
               setX(getX() + moveX);
               setY(getY() + moveY);
 
-              colliding = GameMap.isColliding(this, gameObject);
+              colliding = this.isCollidingWith(gameObject);
             }
-          }
+          }*/
         }
       }
     }
