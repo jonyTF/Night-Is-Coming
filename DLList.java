@@ -128,6 +128,9 @@ public class DLList < E extends Comparable > implements Serializable {
     }
 
     public String toString() {
+        if (size == 0) 
+            return "[]";
+
         String s = "[";
         Node < E > current = dummy.next();
         for (int i = 0; i < size; i++) {

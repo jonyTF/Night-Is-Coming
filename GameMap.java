@@ -18,9 +18,11 @@ public class GameMap implements Serializable {
   public void generateGameMap() {
     clearGameMap();
 
-    int randX = (int)(Math.random() * width);
-    int randY = (int)(Math.random() * height);
-    addTree(randX, randY);
+    for (int i = 0; i < 1; i++) {
+      int randX = (int)(Math.random() * width);
+      int randY = (int)(Math.random() * height);
+      addTree(randX, randY);
+    }
   }
 
   public void clearGameMap() {
@@ -32,7 +34,7 @@ public class GameMap implements Serializable {
   }
 
   public void sortGameObjects(int axis) {
-    gameObjects.sort(DLList.INSERTION_SORT, new AABBComparator(axis));
+    gameObjects.sort(DLList.INSERTION_SORT, new GameObjectAABBComparator(axis));
   }
 
   public void setZoom(int zoom) {

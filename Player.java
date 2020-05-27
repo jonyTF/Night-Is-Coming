@@ -3,18 +3,19 @@ import java.util.Date;
 
 public class Player extends GameObject implements Serializable {
   public static final double INITIAL_SPEED = 3;
+  // The distance the player must be to an object to be considered "close" to it
+  public static final double CLOSE_DIST = 0.3; 
+  // The range in radians for a player to be considered "facing" an object 
+  public static final double FACING_ANGLE_RANGE = Math.PI/3; 
 
   private int id;
   private double speed;
   private double angleFacing;
   private boolean[] keyDown;
-
-  private GameMap gameMap;
+  private DLList<GameObject> objectsCloseTo;
 
   private long prevMoveTime;
   private long curTime;
-
-  private GameObject gameObject;
   
   public Player(double x, double y, int id) {
     super(
@@ -34,15 +35,11 @@ public class Player extends GameObject implements Serializable {
     this.speed = INITIAL_SPEED;
     this.angleFacing = 0;
     this.keyDown = new boolean[] {false, false, false, false};
+    this.objectsCloseTo = new DLList<GameObject>();
 
     Date date = new Date();
     this.curTime = date.getTime();
     this.prevMoveTime = curTime;
-    this.gameMap = null;
-  }
-
-  public GameObject getGameObject() {
-    return gameObject;
   }
 
   public int getId() {
@@ -103,18 +100,20 @@ public class Player extends GameObject implements Serializable {
       if (keyDown[Screen.KEY_D]) 
         moveRight();
 
-      // If colliding with another object,
-      // Move player back to oldPos
+      // Collision and Close To detection
       if (gameMap != null) {
+        objectsCloseTo = new DLList<GameObject>();
+
         DLList<GameObject> gameObjects = gameMap.getGameObjects();
         for (int i = 0; i < gameObjects.size(); i++) {
           GameObject gameObject = gameObjects.get(i);
           
           // If collision not possible anymore, break
-          if (gameObject.getAABB().getMins()[AABB.X] > this.getAABB().getMaxes()[AABB.X]) {
+          /*if (gameObject.getAABB().getMins()[AABB.X] > this.getAABB().getMaxes()[AABB.X]) {
             break;
-          }
-
+          }*/
+          
+          // Prevent movement on collision
           boolean colliding = this.isCollidingWith(gameObject);
           if (colliding) {
             setX(oldPos[0]);
@@ -134,6 +133,12 @@ public class Player extends GameObject implements Serializable {
               colliding = this.isCollidingWith(gameObject);
             }
           }*/
+
+          // Add objects that are close to player
+          double dist = this.getDistanceTo(gameObject);
+          if (dist <= CLOSE_DIST) {
+            objectsCloseTo.add(gameObject);
+          }
         }
       }
     }
@@ -141,6 +146,26 @@ public class Player extends GameObject implements Serializable {
 
   public void move() {
     move(keyDown, null);
+  }
+
+  public GameObject getObjectFacing() {
+    // Gets the object in objectsCloseTo that the player is currently facing
+    // Returns null if there is no such object
+
+    for (int i = 0; i < objectsCloseTo.size(); i++) {
+      GameObject gameObject = objectsCloseTo.get(i);
+      double angleToObject = calculateAngleToObject(gameObject);
+      if (Math.abs(angleFacing - angleToObject) < FACING_ANGLE_RANGE/2) {
+        return gameObject;
+      }
+    }
+    return null;
+  }
+
+  public double calculateAngleToObject(GameObject o) {
+    double xDiff = o.getX() - this.getX();
+    double yDiff = this.getY() - o.getY();
+    return calculateAngle(xDiff, yDiff);
   }
 
   public static double calculateAngle(double x, double y) {

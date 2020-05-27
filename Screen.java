@@ -469,6 +469,8 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
             else
               p.move();
           }
+
+          System.out.println("Player Facing: " + getCurrentPlayer().getObjectFacing());
           
           repaint();
           
