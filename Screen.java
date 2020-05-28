@@ -218,37 +218,35 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
 
     MyHashMap<Integer, GameObject> gameObjects = gameData.getGameMap().getGameObjects();
     DLList<Integer> ids = gameObjects.getKeys();
-
+    
     for (int i = 0; i < ids.size(); i++) {
       GameObject o = gameObjects.get(ids.get(i));
+      int[] pos = getTransformedPos(o.getX(), o.getY(), getCurrentPlayer());
+      int width = (int)getScaledValue(o.getWidth());
+      int height = (int)getScaledValue(o.getHeight());
+      
       switch (o.getType()) {
         case GameObject.TREE:
-          drawTree(g2, o);
+          drawTree(g2, pos[0], pos[1], width);
           break;
         case GameObject.WOOD:
-          drawWood(g2, o);
+          drawWood(g2, pos[0], pos[1], width);
+          break;
+        case GameObject.GRASS:
+          drawGrass(g2, pos[0], pos[1], width);
           break;
       }
     }
   }
   
-  private void drawTree(Graphics2D g2, GameObject treeObject) {
-    int[] pos = getTransformedPos(treeObject.getX(), treeObject.getY(), getCurrentPlayer());
-    int trunkWH = (int)getScaledValue(treeObject.getWidth());
+  private void drawTree(Graphics2D g2, int x, int y, int trunkWH) {
     int leavesWH = (int)(trunkWH * 3);
     
     g2.setColor(woodColor);
-    fillOvalCenter(g2, pos[0], pos[1], trunkWH, trunkWH);
+    fillOvalCenter(g2, x, y, trunkWH, trunkWH);
 
     g2.setColor(new Color(treeColor.getRed(), treeColor.getGreen(), treeColor.getBlue(), 130));
-    fillOvalCenter(g2, pos[0], pos[1], leavesWH, leavesWH);
-  }
-
-  private void drawWood(Graphics2D g2, GameObject woodObject) {
-    int[] pos = getTransformedPos(woodObject.getX(), woodObject.getY(), getCurrentPlayer());
-    int woodWH = (int)getScaledValue(woodObject.getWidth());
-
-    drawWood(g2, pos[0], pos[1], woodWH);
+    fillOvalCenter(g2, x, y, leavesWH, leavesWH);
   }
 
   private void drawWood(Graphics2D g2, int x, int y, int wh) {
@@ -259,6 +257,11 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
 
     g2.setColor(lightWoodColor);
     fillOvalCenter(g2, x, y-wh/2, wh, (int)(0.4*wh));
+  }
+
+  private void drawGrass(Graphics2D g2, int x, int y, int wh) {
+    g2.setColor(treeColor);
+    fillRectCenter(g2, x, y, wh, wh);
   }
 
   private void drawResources(Graphics2D g2) {

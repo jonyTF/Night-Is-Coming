@@ -24,6 +24,14 @@ public class GameMap implements Serializable {
       int randY = (int)(Math.random() * height);
       addTree(randX, randY);
     }
+
+    for (int i = 0; i < width; i++) {
+      for (int j = 0; j < height; j++) {
+        double randX = Math.random()+i;
+        double randY = Math.random()+j;
+        addGrass(randX, randY);
+      }
+    }
   }
 
   public void clearGameMap() {
@@ -75,14 +83,27 @@ public class GameMap implements Serializable {
         GameObject.TREE, 
         x, 
         y, 
-        GameObject.TREE_WH, 
-        GameObject.TREE_WH, 
+        GameObject.TREE_WH,
         GameObject.TREE_HP, 
         new int[]{ 
           GameObject.IS_CIRCLE, 
           GameObject.GET_SMALLER_ON_DAMAGE,
           GameObject.IS_COLLIDABLE
         })
+    );
+  }
+
+  private void addGrass(double x, double y) {
+    int id = getNewId();
+    gameObjects.put( 
+      id,
+      new GameObject(
+        id,
+        GameObject.GRASS, 
+        x, 
+        y, 
+        GameObject.GRASS_WH
+      )
     );
   }
 

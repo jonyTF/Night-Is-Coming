@@ -27,8 +27,7 @@ public class Player extends GameObject implements Serializable {
       GameObject.PLAYER, 
       x, 
       y, 
-      GameObject.PLAYER_WH, 
-      GameObject.PLAYER_WH, 
+      GameObject.PLAYER_WH,
       GameObject.PLAYER_HP, 
       new int[]{ 
         GameObject.IS_CIRCLE, 

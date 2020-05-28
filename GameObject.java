@@ -22,16 +22,19 @@ public class GameObject implements Serializable, Comparable<GameObject> {
   public static final int TL_COORDS = 3; // If X and Y are the top left coordinates
   public static final int IS_COLLECTABLE = 4;
   public static final int IS_RESOURCE = 5;
+  public static final int SAME_WH = 6; // If width and height are the same
 
   // Types
   public static final int PLAYER = 0;
   public static final int TREE = 1;
   public static final int WOOD = 2;
+  public static final int GRASS = 3;
 
   // Dimensions
   public static final double PLAYER_WH = 0.5;
   public static final double TREE_WH = 0.3;
   public static final double WOOD_WH = 0.2;
+  public static final double GRASS_WH = 0.05;
 
   // HP
   public static final int PLAYER_HP = 100;
@@ -41,16 +44,36 @@ public class GameObject implements Serializable, Comparable<GameObject> {
     this(id, -1, x, y, 0, 0, 1, 1, new int[0]);
   }
 
+  public GameObject(int id, int type, double x, double y, double initialWH) {
+    this(id, type, x, y, initialWH, initialWH, 1, 1, new int[0]);
+  }
+
+  public GameObject(int id, int type, double x, double y, double initialWidth, double initialHeight) {
+    this(id, type, x, y, initialWidth, initialHeight, 1, 1, new int[0]);
+  }
+
   public GameObject(int id, int type, double x, double y, double initialWidth, double initialHeight, int[] flags) {
     this(id, type, x, y, initialWidth, initialHeight, 1, 1, flags);
+  }
+
+  public GameObject(int id, int type, double x, double y, double initialWH, int[] flags) {
+    this(id, type, x, y, initialWH, initialWH, 1, 1, flags);
   }
 
   public GameObject(int id, int type, double x, double y, double initialWidth, double initialHeight, int hp) {
     this(id, type, x, y, initialWidth, initialHeight, hp, hp, new int[0]);
   }
 
+  public GameObject(int id, int type, double x, double y, double initialWH, int hp) {
+    this(id, type, x, y, initialWH, initialWH, hp, hp, new int[0]);
+  }
+
   public GameObject(int id, int type, double x, double y, double initialWidth, double initialHeight, int hp, int[] flags) {
     this(id, type, x, y, initialWidth, initialHeight, hp, hp, flags);
+  }
+
+  public GameObject(int id, int type, double x, double y, double initialWH, int hp, int[] flags) {
+    this(id, type, x, y, initialWH, initialWH, hp, hp, flags);
   }
 
   public GameObject(int id, int type, double x, double y, double initialWidth, double initialHeight, int hp, int maxHp, int[] flags) {
@@ -67,6 +90,8 @@ public class GameObject implements Serializable, Comparable<GameObject> {
     for (int i = 0; i < flags.length; i++) {
       this.flags.add(flags[i]);
     }
+    if (initialWidth == initialHeight)
+      this.flags.add(SAME_WH);
   }
 
   public int getId() {
@@ -105,6 +130,8 @@ public class GameObject implements Serializable, Comparable<GameObject> {
         return "tree";
       case WOOD:
         return "wood";
+      case GRASS:
+        return "grass";
     }
     return "INVALID";
   }
@@ -202,8 +229,8 @@ public class GameObject implements Serializable, Comparable<GameObject> {
     DLList<GameObject> remnants = new DLList<GameObject>();
     switch (type) {
       case TREE:
-        remnants.add(new GameObject(GameMap.getNewId(), WOOD, x-1.1*WOOD_WH, y-1.1*WOOD_WH, WOOD_WH, WOOD_WH, new int[]{IS_COLLECTABLE, IS_RESOURCE}));
-        remnants.add(new GameObject(GameMap.getNewId(), WOOD, x+1.1*WOOD_WH, y+1.1*WOOD_WH, WOOD_WH, WOOD_WH, new int[]{IS_COLLECTABLE, IS_RESOURCE}));
+        remnants.add(new GameObject(GameMap.getNewId(), WOOD, x-1.1*WOOD_WH, y-1.1*WOOD_WH, WOOD_WH, new int[]{IS_COLLECTABLE, IS_RESOURCE}));
+        remnants.add(new GameObject(GameMap.getNewId(), WOOD, x+1.1*WOOD_WH, y+1.1*WOOD_WH, WOOD_WH, new int[]{IS_COLLECTABLE, IS_RESOURCE}));
         break;
     }
     
