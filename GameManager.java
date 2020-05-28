@@ -43,6 +43,9 @@ public class GameManager implements Runnable {
       case Data.UPDATE_GAME_OBJECT:
         updateGameObject((GameObject)object);
         break;
+      case Data.REMOVE_GAME_OBJECT:
+        removeGameObject((int)object);
+        break;
     }
     broadcast(data);
   }
@@ -57,6 +60,10 @@ public class GameManager implements Runnable {
 
   public void updateGameObject(GameObject gameObject) {
     gameData.updateGameObject(gameObject);
+  }
+
+  public void removeGameObject(int id) {
+    gameData.removeGameObject(id);
   }
 
   public void run() {

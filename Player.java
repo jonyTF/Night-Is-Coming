@@ -14,6 +14,9 @@ public class Player extends GameObject implements Serializable {
   private double angleFacing;
   private boolean[] keyDown;
   private DLList<GameObject> objectsCloseTo;
+  private GameObject collidingObject; // the object currently colliding with
+  private MyHashMap<Integer, Integer> resources; // map containing the type of resource and the amount of that resource
+  private DLList<Integer> inventory; // inventory contains all the other items such as weapons, blueprints, etc.
 
   private long prevMoveTime;
   private long curTime;
@@ -39,6 +42,9 @@ public class Player extends GameObject implements Serializable {
     this.angleFacing = 0;
     this.keyDown = new boolean[] {false, false, false, false};
     this.objectsCloseTo = new DLList<GameObject>();
+    this.collidingObject = null;
+    this.resources = new MyHashMap<Integer, Integer>();
+    this.inventory = new DLList<Integer>();
 
     Date date = new Date();
     this.curTime = date.getTime();
@@ -110,6 +116,7 @@ public class Player extends GameObject implements Serializable {
     // Collision and Close To detection
     if (gameMap != null) {
       objectsCloseTo = new DLList<GameObject>();
+      collidingObject = null;
 
       MyHashMap<Integer, GameObject> gameObjects = gameMap.getGameObjects();
       DLList<Integer> ids = gameObjects.getKeys();
@@ -122,11 +129,15 @@ public class Player extends GameObject implements Serializable {
           break;
         }*/
         
-        // Prevent movement on collision
         boolean colliding = this.isCollidingWith(gameObject);
         if (colliding) {
-          setX(oldPos[0]);
-          setY(oldPos[1]);
+          if (gameObject.hasFlag(GameObject.IS_COLLIDABLE)) {
+            // Prevent movement on collision
+            setX(oldPos[0]);
+            setY(oldPos[1]);
+          } else {
+            collidingObject = gameObject;
+          }
         }
 
         /*if (colliding) {
@@ -155,6 +166,34 @@ public class Player extends GameObject implements Serializable {
 
   public void move() {
     move(keyDown, null);
+  }
+
+  public GameObject getCollidingObject() {
+    return collidingObject;
+  }
+
+  public void pickUpItem() {
+    // Picks up collidingObject
+    
+    // Determine whether item is a resource or inventory item
+    // and add to correct datastructure
+    if (collidingObject.hasFlag(GameObject.IS_RESOURCE)) {
+      Integer oldNum = resources.get(collidingObject.getType());
+      if (oldNum == null)
+        resources.put(collidingObject.getType(), 1);
+      else
+        resources.put(collidingObject.getType(), oldNum+1);
+    } else {
+      inventory.add(collidingObject.getType());
+    }
+  }
+
+  public MyHashMap<Integer, Integer> getResources() {
+    return resources;
+  }
+
+  public DLList<Integer> getInventory() {
+    return inventory;
   }
 
   public GameObject getObjectFacing() {

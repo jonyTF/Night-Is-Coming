@@ -52,6 +52,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
   private boolean windowFocused;
   private boolean playing;
   private boolean showInstructions;
+  private String hintText;
 
   private JButton startBtn;
   private JButton instructionsBtn;
@@ -76,6 +77,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     windowFocused = false;
     playing = false;
     showInstructions = false;
+    hintText = "";
 
     startBtn = new JButton("Start");
     startBtn.setBounds(SCREEN_WIDTH/2-75, SCREEN_HEIGHT*5/6, 150, 30);
@@ -131,6 +133,10 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
 
       // Draw background
       drawBackground(g2);
+
+      // Draw hint
+      if (hintText.length() > 0)
+        drawHint(g2);
     }
   }
 
@@ -140,10 +146,28 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     g2.setColor(Color.white);
     Font fontSmall = new Font(Font.MONOSPACED, Font.PLAIN, 20);
     drawStringTC(g2, "Instructions", new Font(Font.MONOSPACED, Font.PLAIN, 40), SCREEN_WIDTH/2, 20);
-    drawStringTL(g2, "Use WASD to move", fontSmall, 20, 60);
-    drawStringTL(g2, "Move your mouse to aim", fontSmall, 20, 80);
-    drawStringTL(g2, "Tap your mouse repeatedly to break objects", fontSmall, 20, 100);
-    drawStringTL(g2, "Click items in your inventory to equip them", fontSmall, 20, 120);
+
+    String[] instructions = {
+      "Use WASD to move",
+      "Press E to pick up an item",
+      "Move your mouse to aim",
+      "Tap your mouse repeatedly while aiming at an object to break it",
+      "Click items in your inventory to equip them"
+    };
+    for (int i = 0; i < instructions.length; i++) {
+      drawStringTL(g2, instructions[i], fontSmall, 20, 60+i*20);
+    }
+  }
+
+  private void drawHint(Graphics2D g2) {
+    // Display hints to user such as "press E to pick up item"
+    Font font = new Font(Font.MONOSPACED, Font.PLAIN, 20);
+    FontMetrics metrics = getFontMetrics(font);
+    
+    g2.setColor(new Color(0, 0, 0, 130));
+    fillRectCenter(g2, SCREEN_WIDTH/2, SCREEN_HEIGHT-15, metrics.stringWidth(hintText) + 20, 30);
+    g2.setColor(Color.white);
+    drawStringTC(g2, hintText, font, SCREEN_WIDTH/2, SCREEN_HEIGHT-30);
   }
 
   private void drawPlayer(Graphics2D g2, Player p) {
@@ -344,34 +368,23 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     repaint();
   }
 
-  private void sendGameData() {
-    try {
-      if (out != null) {
-        out.reset();
-        out.writeObject(gameData);
-      }
-    } catch (IOException e) {
-      System.out.println(e);
-    }
-  }
-
   private void sendPlayerData() {
-    try {
-      if (out != null) {
-        out.reset();
-        out.writeObject(new Data(Data.UPDATE_PLAYER, getCurrentPlayer()));
-      }
-    } catch (IOException e) {
-      System.out.println(e);
-    }
+    sendData(new Data(Data.UPDATE_PLAYER, getCurrentPlayer()));
   }
 
   private void updateGameObject(GameObject gameObject) {
+    sendData(new Data(Data.UPDATE_GAME_OBJECT, gameObject));
+  }
+
+  private void removeGameObject(int id) {
+    sendData(new Data(Data.REMOVE_GAME_OBJECT, id));
+  } 
+
+  private void sendData(Data data) {
     try {
       if (out != null) {
         out.reset();
-        System.out.println("updating " + gameObject);
-        out.writeObject(new Data(Data.UPDATE_GAME_OBJECT, gameObject));
+        out.writeObject(data);
       }
     } catch (IOException e) {
       System.out.println(e);
@@ -381,7 +394,8 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
   // Key events
   public void keyPressed(KeyEvent e) {
     char keyChar = e.getKeyChar();
-
+    
+    // Movement
     if (!( keyChar == 'w' && keyChar == 's' )) {
       if (keyChar == 'w') {
         keyDown[KEY_W] = true;
@@ -396,6 +410,15 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
       } else if (keyChar == 'd') {
         keyDown[KEY_D] = true;
       }
+    }
+
+    // Picking up items
+    GameObject collidingObject = getCurrentPlayer().getCollidingObject();
+    if (keyChar == 'e' && collidingObject != null) {
+      getCurrentPlayer().pickUpItem();
+      // Remove object from map
+      gameData.removeGameObject(collidingObject.getId());
+      removeGameObject(collidingObject.getId());
     }
   }
 
@@ -523,6 +546,13 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
           Player p = getCurrentPlayer();
           if (p != null)
             p.move(keyDown, gameData.getGameMap());
+
+          GameObject collidingObject = p.getCollidingObject();
+          if (collidingObject != null && collidingObject.hasFlag(GameObject.IS_COLLECTABLE)) {
+            hintText = "Press E to pick up " + collidingObject.getTypeString();
+          } else {
+            hintText = "";
+          }
           
 
           /*

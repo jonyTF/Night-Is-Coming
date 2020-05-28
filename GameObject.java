@@ -15,20 +15,25 @@ public class GameObject implements Serializable, Comparable<GameObject> {
 
   private DLList<Integer> flags;
 
+  // Flags
   public static final int IS_CIRCLE = 0;
   public static final int GET_SMALLER_ON_DAMAGE = 1;
   public static final int IS_COLLIDABLE = 2; // If you can collide with this object
   public static final int TL_COORDS = 3; // If X and Y are the top left coordinates
   public static final int IS_COLLECTABLE = 4;
+  public static final int IS_RESOURCE = 5;
 
+  // Types
   public static final int PLAYER = 0;
   public static final int TREE = 1;
   public static final int WOOD = 2;
 
+  // Dimensions
   public static final double PLAYER_WH = 0.5;
   public static final double TREE_WH = 0.3;
   public static final double WOOD_WH = 0.2;
 
+  // HP
   public static final int PLAYER_HP = 100;
   public static final int TREE_HP = 5;
 
@@ -197,8 +202,8 @@ public class GameObject implements Serializable, Comparable<GameObject> {
     DLList<GameObject> remnants = new DLList<GameObject>();
     switch (type) {
       case TREE:
-        remnants.add(new GameObject(GameMap.getNewId(), WOOD, x-1.1*WOOD_WH, y-1.1*WOOD_WH, WOOD_WH, WOOD_WH, new int[]{IS_COLLECTABLE}));
-        remnants.add(new GameObject(GameMap.getNewId(), WOOD, x+1.1*WOOD_WH, y+1.1*WOOD_WH, WOOD_WH, WOOD_WH, new int[]{IS_COLLECTABLE}));
+        remnants.add(new GameObject(GameMap.getNewId(), WOOD, x-1.1*WOOD_WH, y-1.1*WOOD_WH, WOOD_WH, WOOD_WH, new int[]{IS_COLLECTABLE, IS_RESOURCE}));
+        remnants.add(new GameObject(GameMap.getNewId(), WOOD, x+1.1*WOOD_WH, y+1.1*WOOD_WH, WOOD_WH, WOOD_WH, new int[]{IS_COLLECTABLE, IS_RESOURCE}));
         break;
     }
     
@@ -210,17 +215,15 @@ public class GameObject implements Serializable, Comparable<GameObject> {
   }
 
   public static boolean isColliding(GameObject o1, GameObject o2) {
-    if (o1.hasFlag(IS_COLLIDABLE) && o2.hasFlag(IS_COLLIDABLE)) {
-      if (o1.hasFlag(IS_CIRCLE) && o2.hasFlag(IS_CIRCLE)) {
-        // Circle collision
-        return getDistanceBetween(o1, o2) < 0;
-      } else {
-        // Rectangle collision
-        AABB rect1 = o1.getAABB();
-        AABB rect2 = o2.getAABB();
-        if (rect1.left() < rect2.right() && rect1.right() > rect2.left() && rect1.top() < rect2.bottom() && rect1.bottom() > rect2.top())
-          return true;
-      }
+    if (o1.hasFlag(IS_CIRCLE) && o2.hasFlag(IS_CIRCLE)) {
+      // Circle collision
+      return getDistanceBetween(o1, o2) < 0;
+    } else {
+      // Rectangle collision
+      AABB rect1 = o1.getAABB();
+      AABB rect2 = o2.getAABB();
+      if (rect1.left() < rect2.right() && rect1.right() > rect2.left() && rect1.top() < rect2.bottom() && rect1.bottom() > rect2.top())
+        return true;
     }
     return false;
   }
