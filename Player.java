@@ -43,8 +43,10 @@ public class Player extends GameObject implements Serializable {
     this.keyDown = new boolean[] {false, false, false, false};
     this.objectsCloseTo = new DLList<GameObject>();
     this.collidingObject = null;
-    this.resources = new MyHashMap<Integer, Integer>();
     this.inventory = new DLList<Integer>();
+
+    this.resources = new MyHashMap<Integer, Integer>();
+    resources.put(GameObject.WOOD, 0);
 
     Date date = new Date();
     this.curTime = date.getTime();
@@ -135,7 +137,8 @@ public class Player extends GameObject implements Serializable {
             // Prevent movement on collision
             setX(oldPos[0]);
             setY(oldPos[1]);
-          } else {
+          } else if (gameObject.hasFlag(GameObject.IS_COLLECTABLE)) {
+            // Set colliding object otherwise
             collidingObject = gameObject;
           }
         }
@@ -179,10 +182,7 @@ public class Player extends GameObject implements Serializable {
     // and add to correct datastructure
     if (collidingObject.hasFlag(GameObject.IS_RESOURCE)) {
       Integer oldNum = resources.get(collidingObject.getType());
-      if (oldNum == null)
-        resources.put(collidingObject.getType(), 1);
-      else
-        resources.put(collidingObject.getType(), oldNum+1);
+      resources.put(collidingObject.getType(), oldNum+1);
     } else {
       inventory.add(collidingObject.getType());
     }

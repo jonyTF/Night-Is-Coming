@@ -134,6 +134,9 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
       // Draw background
       drawBackground(g2);
 
+      // Draw Resources sidebar
+      drawResources(g2);
+
       // Draw hint
       if (hintText.length() > 0)
         drawHint(g2);
@@ -245,12 +248,42 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     int[] pos = getTransformedPos(woodObject.getX(), woodObject.getY(), getCurrentPlayer());
     int woodWH = (int)getScaledValue(woodObject.getWidth());
 
+    drawWood(g2, pos[0], pos[1], woodWH);
+  }
+
+  private void drawWood(Graphics2D g2, int x, int y, int wh) {
+    // Draw from center
     g2.setColor(woodColor);
-    fillRectCenter(g2, pos[0], pos[1], woodWH, woodWH);
-    fillOvalCenter(g2, pos[0], pos[1]+woodWH/2, woodWH, (int)(0.4*woodWH));
+    fillRectCenter(g2, x, y, wh, wh);
+    fillOvalCenter(g2, x, y+wh/2, wh, (int)(0.4*wh));
 
     g2.setColor(lightWoodColor);
-    fillOvalCenter(g2, pos[0], pos[1]-woodWH/2, woodWH, (int)(0.4*woodWH));
+    fillOvalCenter(g2, x, y-wh/2, wh, (int)(0.4*wh));
+  }
+
+  private void drawResources(Graphics2D g2) {
+    int width = 50;
+    g2.setColor(new Color(0, 0, 0, 130));
+    g2.fillRect(SCREEN_WIDTH-width, 0, width, SCREEN_HEIGHT);
+
+    int resourceWH = width-15;
+    int numH = 20;
+    int resourceX = SCREEN_WIDTH-width/2;
+    Font font = new Font(Font.MONOSPACED, Font.PLAIN, numH);
+
+    MyHashMap<Integer, Integer> resources = getCurrentPlayer().getResources();
+    DLList<Integer> resourceTypes = resources.getKeys();
+    for (int i = 0; i < resourceTypes.size(); i++) {
+      int type = resourceTypes.get(i);
+      int yStart = 50+i*(resourceWH + numH + 10);
+      switch (type) {
+        case GameObject.WOOD:
+          drawWood(g2, resourceX, yStart, resourceWH);
+          break;
+      }
+      g2.setColor(Color.white);
+      drawStringTC(g2, resources.get(type).toString(), font, resourceX, yStart+resourceWH-10);
+    }
   }
 
   private void fillOvalCenter(Graphics2D g2, int x, int y, int w, int h) {
