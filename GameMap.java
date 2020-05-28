@@ -19,7 +19,7 @@ public class GameMap implements Serializable {
   public void generateGameMap() {
     clearGameMap();
 
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < 5; i++) {
       int randX = (int)(Math.random() * width);
       int randY = (int)(Math.random() * height);
       addTree(randX, randY);
@@ -32,6 +32,10 @@ public class GameMap implements Serializable {
 
   public void updateGameObject(GameObject o) {
     gameObjects.put(o.getId(), o);
+  }
+
+  public void removeGameObject(int id) {
+    gameObjects.remove(id);
   }
 
   public MyHashMap<Integer, GameObject> getGameObjects() {

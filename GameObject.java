@@ -98,6 +98,8 @@ public class GameObject implements Serializable, Comparable<GameObject> {
         return "player";
       case TREE:
         return "tree";
+      case WOOD:
+        return "wood";
     }
     return "INVALID";
   }

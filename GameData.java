@@ -15,6 +15,10 @@ public class GameData implements Serializable {
     gameMap.updateGameObject(o);
   }
 
+  public void removeGameObject(int id) {
+    gameMap.removeGameObject(id);
+  }
+
   public void addPlayer(Player p) {
     playerMap.put(p.getId(), p);
   }

@@ -66,11 +66,12 @@ public class GameManager implements Runnable {
       
       // Replaces object with remnants when object is dead
       MyHashMap<Integer, GameObject> gameObjects = gameData.getGameMap().getGameObjects();
-      DLList<Integer> keys = gameObjects.getKeys();
-      for (int i = 0; i < keys.size(); i++) {
-        GameObject gameObject = gameObjects.get(keys.get(i));
+      DLList<Integer> ids = gameObjects.getKeys();
+      for (int i = 0; i < ids.size(); i++) {
+        GameObject gameObject = gameObjects.get(ids.get(i));
         if (gameObject.isDead()) {
-          gameObjects.remove(keys.get(i));
+          broadcast(Data.REMOVE_GAME_OBJECT, ids.get(i));
+          gameData.removeGameObject(ids.get(i));
           DLList<GameObject> remnants = gameObject.getRemnants();
           for (int j = 0; j < remnants.size(); j++) {
             GameObject remnant = remnants.get(j);

@@ -92,9 +92,8 @@ public class Player extends GameObject implements Serializable {
     prevMoveTime = curTime;
     curTime = date.getTime();
 
+    double[] oldPos = {getX(), getY()};
     if (keyDown[Screen.KEY_W] || keyDown[Screen.KEY_A] || keyDown[Screen.KEY_S] || keyDown[Screen.KEY_D]) {
-      double[] oldPos = {getX(), getY()};
-
       if (keyDown[Screen.KEY_W])
         moveUp();
       
@@ -106,48 +105,49 @@ public class Player extends GameObject implements Serializable {
 
       if (keyDown[Screen.KEY_D]) 
         moveRight();
+    }
 
-      // Collision and Close To detection
-      if (gameMap != null) {
-        objectsCloseTo = new DLList<GameObject>();
+    // Collision and Close To detection
+    if (gameMap != null) {
+      objectsCloseTo = new DLList<GameObject>();
 
-        MyHashMap<Integer, GameObject> gameObjects = gameMap.getGameObjects();
-        DLList<Integer> keys = gameObjects.getKeys();
-        for (int i = 0; i < keys.size(); i++) {
-          GameObject gameObject = gameObjects.get(keys.get(i));
-          
-          // If collision not possible anymore, break
-          // TODO: reimplement this ?
-          /*if (gameObject.getAABB().getMins()[AABB.X] > this.getAABB().getMaxes()[AABB.X]) {
-            break;
-          }*/
-          
-          // Prevent movement on collision
-          boolean colliding = this.isCollidingWith(gameObject);
-          if (colliding) {
-            setX(oldPos[0]);
-            setY(oldPos[1]);
+      MyHashMap<Integer, GameObject> gameObjects = gameMap.getGameObjects();
+      DLList<Integer> ids = gameObjects.getKeys();
+      for (int i = 0; i < ids.size(); i++) {
+        GameObject gameObject = gameObjects.get(ids.get(i));
+        
+        // If collision not possible anymore, break
+        // TODO: reimplement this ?
+        /*if (gameObject.getAABB().getMins()[AABB.X] > this.getAABB().getMaxes()[AABB.X]) {
+          break;
+        }*/
+        
+        // Prevent movement on collision
+        boolean colliding = this.isCollidingWith(gameObject);
+        if (colliding) {
+          setX(oldPos[0]);
+          setY(oldPos[1]);
+        }
+
+        /*if (colliding) {
+          double diffX = oldPos[0] - getX();
+          double diffY = oldPos[1] - getY();
+          double angle = calculateAngle(diffX, diffY);
+          double moveDist = 0.01;
+          double moveX = moveDist*Math.cos(angle);
+          double moveY = moveDist*Math.sin(angle);
+          while (colliding) {
+            setX(getX() + moveX);
+            setY(getY() + moveY);
+
+            colliding = this.isCollidingWith(gameObject);
           }
-          /*if (colliding) {
-            double diffX = oldPos[0] - getX();
-            double diffY = oldPos[1] - getY();
-            double angle = calculateAngle(diffX, diffY);
-            double moveDist = 0.01;
-            double moveX = moveDist*Math.cos(angle);
-            double moveY = moveDist*Math.sin(angle);
-            while (colliding) {
-              setX(getX() + moveX);
-              setY(getY() + moveY);
+        }*/
 
-              colliding = this.isCollidingWith(gameObject);
-            }
-          }*/
-
-          // Add objects that are close to player
-          double dist = this.getDistanceTo(gameObject);
-          if (dist <= CLOSE_DIST) {
-            objectsCloseTo.add(gameObject);
-          }
+        // Add objects that are close to player
+        double dist = this.getDistanceTo(gameObject);
+        if (dist <= CLOSE_DIST) {
+          objectsCloseTo.add(gameObject);
         }
       }
     }

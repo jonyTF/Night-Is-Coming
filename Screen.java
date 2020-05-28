@@ -190,10 +190,10 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     // Draw the objects contained in map
 
     MyHashMap<Integer, GameObject> gameObjects = gameData.getGameMap().getGameObjects();
-    DLList<Integer> keys = gameObjects.getKeys();
+    DLList<Integer> ids = gameObjects.getKeys();
 
-    for (int i = 0; i < keys.size(); i++) {
-      GameObject o = gameObjects.get(keys.get(i));
+    for (int i = 0; i < ids.size(); i++) {
+      GameObject o = gameObjects.get(ids.get(i));
       switch (o.getType()) {
         case GameObject.TREE:
           drawTree(g2, o);
@@ -223,6 +223,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
 
     g2.setColor(woodColor);
     fillRectCenter(g2, pos[0], pos[1], woodWH, woodWH);
+    fillOvalCenter(g2, pos[0], pos[1]+woodWH/2, woodWH, (int)(0.4*woodWH));
 
     g2.setColor(lightWoodColor);
     fillOvalCenter(g2, pos[0], pos[1]-woodWH/2, woodWH, (int)(0.4*woodWH));
@@ -314,6 +315,8 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
   }
 
   private void handleData(Data data) {
+    if (data.getType() != Data.UPDATE_PLAYER) 
+      System.out.println(data);
     Object object = data.getObject();
     switch (data.getType()) {
       case Data.ASSIGN_ID:
@@ -324,6 +327,9 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
         break;
       case Data.UPDATE_GAME_OBJECT:
         gameData.updateGameObject((GameObject)object);
+        break;
+      case Data.REMOVE_GAME_OBJECT:
+        gameData.removeGameObject((int)object);
         break;
       case Data.ADD_PLAYER:
         gameData.addPlayer((Player)object);
@@ -427,18 +433,20 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
 
   public void mousePressed(MouseEvent e) {
     mouseDown = true;
-    GameObject objectFacing = getCurrentPlayer().getObjectFacing();
-    if (objectFacing == null) {
-      playSound("sound/whoosh1.wav");
-    } else {
-      switch (objectFacing.getType()) {
-        case GameObject.TREE:
-          playSound("sound/tree_impact.wav");
-          objectFacing.damage(getCurrentPlayer().getDamage());
-          System.out.println("damaged!");
-          break;
+    if (getCurrentPlayer() != null) {
+      GameObject objectFacing = getCurrentPlayer().getObjectFacing();
+      if (objectFacing == null || objectFacing.hasFlag(GameObject.IS_COLLECTABLE)) {
+        playSound("sound/whoosh1.wav");
+      } else {
+        switch (objectFacing.getType()) {
+          case GameObject.TREE:
+            playSound("sound/tree_impact.wav");
+            objectFacing.damage(getCurrentPlayer().getDamage());
+            System.out.println("damaged!");
+            break;
+        }
+        updateGameObject(objectFacing);
       }
-      updateGameObject(objectFacing);
     }
   }
   
