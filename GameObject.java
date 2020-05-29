@@ -25,20 +25,31 @@ public class GameObject implements Serializable, Comparable<GameObject> {
   public static final int SAME_WH = 6; // If width and height are the same
 
   // Types
-  public static final int PLAYER = 0;
-  public static final int TREE = 1;
-  public static final int WOOD = 2;
-  public static final int GRASS = 3;
+  public static final int EMPTY = -1;
+  public static final int PLAYER = 100;
+  public static final int TREE = 101;
+  public static final int WOOD = 102;
+  public static final int GRASS = 103;
+  public static final int BOULDER = 104;
+  public static final int STONE = 105;
+  public static final int TOOL_UTIL = 106; // Hammers and such
+  public static final int TOOL_MELEE = 107; // Swords
+  public static final int TOOL_RANGED = 108; // Bow and Arrows/guns
+  public static final int HAMMER = 109;
+  
 
   // Dimensions
   public static final double PLAYER_WH = 0.5;
   public static final double TREE_WH = 0.3;
   public static final double WOOD_WH = 0.2;
   public static final double GRASS_WH = 0.05;
+  public static final double BOULDER_WH = 0.6;
+  public static final double STONE_WH = 0.2;
 
   // HP
   public static final int PLAYER_HP = 100;
   public static final int TREE_HP = 5;
+  public static final int BOULDER_HP = 10;
 
   public GameObject(int id, double x, double y) {
     this(id, -1, x, y, 0, 0, 1, 1, new int[0]);
@@ -132,6 +143,10 @@ public class GameObject implements Serializable, Comparable<GameObject> {
         return "wood";
       case GRASS:
         return "grass";
+      case BOULDER:
+        return "boulder";
+      case STONE:
+        return "stone";
     }
     return "INVALID";
   }
@@ -231,6 +246,12 @@ public class GameObject implements Serializable, Comparable<GameObject> {
       case TREE:
         remnants.add(new GameObject(GameMap.getNewId(), WOOD, x-1.1*WOOD_WH, y-1.1*WOOD_WH, WOOD_WH, new int[]{IS_COLLECTABLE, IS_RESOURCE}));
         remnants.add(new GameObject(GameMap.getNewId(), WOOD, x+1.1*WOOD_WH, y+1.1*WOOD_WH, WOOD_WH, new int[]{IS_COLLECTABLE, IS_RESOURCE}));
+        break;
+      case BOULDER:
+        remnants.add(new GameObject(GameMap.getNewId(), STONE, x-1.1*STONE_WH, y-1.1*STONE_WH, STONE_WH, new int[]{IS_COLLECTABLE, IS_RESOURCE}));
+        remnants.add(new GameObject(GameMap.getNewId(), STONE, x-1.1*STONE_WH, y+1.1*STONE_WH, STONE_WH, new int[]{IS_COLLECTABLE, IS_RESOURCE}));
+        remnants.add(new GameObject(GameMap.getNewId(), STONE, x+1.1*STONE_WH, y-1.1*STONE_WH, STONE_WH, new int[]{IS_COLLECTABLE, IS_RESOURCE}));
+        remnants.add(new GameObject(GameMap.getNewId(), STONE, x+1.1*STONE_WH, y+1.1*STONE_WH, STONE_WH, new int[]{IS_COLLECTABLE, IS_RESOURCE}));
         break;
     }
     

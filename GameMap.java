@@ -25,6 +25,12 @@ public class GameMap implements Serializable {
       addTree(randX, randY);
     }
 
+    for (int i = 0; i < 5; i++) {
+      int randX = (int)(Math.random() * width);
+      int randY = (int)(Math.random() * height);
+      addBoulder(randX, randY);
+    }
+
     for (int i = 0; i < width; i++) {
       for (int j = 0; j < height; j++) {
         double randX = Math.random()+i;
@@ -85,6 +91,25 @@ public class GameMap implements Serializable {
         y, 
         GameObject.TREE_WH,
         GameObject.TREE_HP, 
+        new int[]{ 
+          GameObject.IS_CIRCLE, 
+          GameObject.GET_SMALLER_ON_DAMAGE,
+          GameObject.IS_COLLIDABLE
+        })
+    );
+  }
+
+  private void addBoulder(int x, int y) {
+    int id = getNewId();
+    gameObjects.put( 
+      id,
+      new GameObject(
+        id,
+        GameObject.BOULDER, 
+        x, 
+        y, 
+        GameObject.BOULDER_WH,
+        GameObject.BOULDER_HP, 
         new int[]{ 
           GameObject.IS_CIRCLE, 
           GameObject.GET_SMALLER_ON_DAMAGE,

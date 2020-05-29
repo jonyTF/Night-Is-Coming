@@ -7,7 +7,7 @@ public class GameData implements Serializable {
 
   public GameData() {
     playerMap = new MyHashMap<Integer, Player>(MAX_PLAYERS);
-    gameMap = new GameMap(10, 10);
+    gameMap = new GameMap(20, 20);
     gameMap.generateGameMap();
   }
 

@@ -16,6 +16,7 @@ public class Player extends GameObject implements Serializable {
   private DLList<GameObject> objectsCloseTo;
   private GameObject collidingObject; // the object currently colliding with
   private MyHashMap<Integer, Integer> resources; // map containing the type of resource and the amount of that resource
+  private MyHashMap<Integer, Integer> tools; // map containing the type of tool and the tool that it is
   private DLList<Integer> inventory; // inventory contains all the other items such as weapons, blueprints, etc.
 
   private long prevMoveTime;
@@ -46,6 +47,12 @@ public class Player extends GameObject implements Serializable {
 
     this.resources = new MyHashMap<Integer, Integer>();
     resources.put(GameObject.WOOD, 0);
+    resources.put(GameObject.STONE, 0);
+
+    this.tools = new MyHashMap<Integer, Integer>();
+    tools.put(GameObject.TOOL_UTIL, GameObject.EMPTY);
+    tools.put(GameObject.TOOL_MELEE, GameObject.EMPTY);
+    tools.put(GameObject.TOOL_RANGED, GameObject.EMPTY);
 
     Date date = new Date();
     this.curTime = date.getTime();
@@ -189,6 +196,10 @@ public class Player extends GameObject implements Serializable {
 
   public MyHashMap<Integer, Integer> getResources() {
     return resources;
+  }
+
+  public MyHashMap<Integer, Integer> getTools() {
+    return tools;
   }
 
   public DLList<Integer> getInventory() {

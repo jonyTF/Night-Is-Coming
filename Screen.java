@@ -7,6 +7,11 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.RenderingHints;
 
+import java.awt.geom.Area;
+import java.awt.geom.RoundRectangle2D;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.AffineTransform;
+
 import java.awt.event.KeyListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.FocusListener;
@@ -41,6 +46,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
   private final Color grassColor = new Color(165, 212, 106);
   private final Color woodColor = new Color(166, 105, 70);
   private final Color lightWoodColor = new Color(235, 209, 195);
+  private final Color stoneColor = new Color(138, 138, 138);
 
   private ObjectOutputStream out;
   private int id;
@@ -134,8 +140,8 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
       // Draw background
       drawBackground(g2);
 
-      // Draw Resources sidebar
-      drawResources(g2);
+      // Draw sidebar
+      drawSidebar(g2);
 
       // Draw hint
       if (hintText.length() > 0)
@@ -225,21 +231,32 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
       int width = (int)getScaledValue(o.getWidth());
       int height = (int)getScaledValue(o.getHeight());
       
-      switch (o.getType()) {
-        case GameObject.TREE:
-          drawTree(g2, pos[0], pos[1], width);
-          break;
-        case GameObject.WOOD:
-          drawWood(g2, pos[0], pos[1], width);
-          break;
-        case GameObject.GRASS:
-          drawGrass(g2, pos[0], pos[1], width);
-          break;
-      }
+      drawGameObject(g2, o.getType(), pos[0], pos[1], width, height); 
+    }
+  }
+
+  private void drawGameObject(Graphics2D g2, int type, int x, int y, int width, int height) {
+    switch (type) {
+      case GameObject.TREE:
+        drawTree(g2, x, y, width);
+        break;
+      case GameObject.WOOD:
+        drawWood(g2, x, y, width);
+        break;
+      case GameObject.GRASS:
+        drawGrass(g2, x, y, width);
+        break;
+      case GameObject.BOULDER:
+        drawBoulder(g2, x, y, width);
+        break;
+      case GameObject.STONE:
+        drawStone(g2, x, y, width);
+        break;
     }
   }
   
   private void drawTree(Graphics2D g2, int x, int y, int trunkWH) {
+    // C coords
     int leavesWH = (int)(trunkWH * 3);
     
     g2.setColor(woodColor);
@@ -250,7 +267,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
   }
 
   private void drawWood(Graphics2D g2, int x, int y, int wh) {
-    // Draw from center
+    // // C coords
     g2.setColor(woodColor);
     fillRectCenter(g2, x, y, wh, wh);
     fillOvalCenter(g2, x, y+wh/2, wh, (int)(0.4*wh));
@@ -260,33 +277,111 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
   }
 
   private void drawGrass(Graphics2D g2, int x, int y, int wh) {
+    // C coords
     g2.setColor(treeColor);
     fillRectCenter(g2, x, y, wh, wh);
   }
 
-  private void drawResources(Graphics2D g2) {
+  private void drawBoulder(Graphics2D g2, int x, int y, int wh) {
+    // C coords
+    g2.setColor(stoneColor.brighter());
+    fillOvalCenter(g2, x, y, wh, wh);
+    g2.setColor(stoneColor);
+    fillOvalCenter(g2, x, y, (int)(.9*wh), (int)(.9*wh));
+  }
+
+  private void drawStone(Graphics2D g2, int x, int y, int wh) {
+    g2.setColor(stoneColor);
+    fillOvalCenter(g2, x, y, wh, wh);
+  }
+
+  private void drawSidebar(Graphics2D g2) {
     int width = 50;
+    int xCenter = SCREEN_WIDTH-width/2;
     g2.setColor(new Color(0, 0, 0, 130));
     g2.fillRect(SCREEN_WIDTH-width, 0, width, SCREEN_HEIGHT);
 
+    drawResources(g2, xCenter, 20, width);
+    drawInventory(g2, xCenter, SCREEN_WIDTH/4, width);
+
+    drawCraftIcon(g2, xCenter, SCREEN_HEIGHT-10-width, (int)(.8*width));
+  }
+
+  private void drawResources(Graphics2D g2, int xCenter, int yStart, int width) {
     int resourceWH = width-15;
     int numH = 20;
-    int resourceX = SCREEN_WIDTH-width/2;
     Font font = new Font(Font.MONOSPACED, Font.PLAIN, numH);
 
     MyHashMap<Integer, Integer> resources = getCurrentPlayer().getResources();
     DLList<Integer> resourceTypes = resources.getKeys();
     for (int i = 0; i < resourceTypes.size(); i++) {
       int type = resourceTypes.get(i);
-      int yStart = 50+i*(resourceWH + numH + 10);
-      switch (type) {
-        case GameObject.WOOD:
-          drawWood(g2, resourceX, yStart, resourceWH);
-          break;
-      }
+      int yCenter = yStart+i*(resourceWH + 20) + resourceWH/2;
+      drawGameObject(g2, type, xCenter, yCenter, resourceWH, resourceWH);
       g2.setColor(Color.white);
-      drawStringTC(g2, resources.get(type).toString(), font, resourceX, yStart+resourceWH-10);
+      drawStringC(g2, resources.get(type).toString(), font, xCenter, yCenter);
     }
+  }
+
+  private void drawInventory(Graphics2D g2, int xCenter, int yStart, int width) {
+    int slotWH = width-15;
+
+    MyHashMap<Integer, Integer> tools = getCurrentPlayer().getTools();
+    DLList<Integer> types = tools.getKeys();
+    for (int i = 0; i < types.size(); i++) {
+      int y = yStart+i*(slotWH + 10) + slotWH/2;
+      g2.setColor(Color.gray);
+      fillRectCenter(g2, xCenter, y, slotWH, slotWH);
+    }
+  }
+
+  private void drawCraftIcon(Graphics2D g2, int x, int y, int wh) {
+    // x center, y top coords
+    y += wh/2;
+
+    AffineTransform old = g2.getTransform();
+    g2.rotate(-Math.PI/4, x, y);
+    drawWrench(g2, x, y, wh);
+    g2.setTransform(old);
+    g2.rotate(Math.PI/4, x, y);
+    drawHammer(g2, x, y, wh);
+    g2.setTransform(old);
+  }
+
+  private void drawWrench(Graphics2D g2, int x, int y, int wh) {
+    // C coords
+    g2.setColor(stoneColor);
+    fillRectCenter(g2, x, y, (int)(0.2*wh), (int)(0.6*wh));
+    Ellipse2D topCircle = getEllipseCenter(x, y + (0.7*wh/2), (0.3*wh), (0.3*wh));
+    Ellipse2D topClip = getEllipseCenter(x, y + (1*wh/2), (0.15*wh), (0.25*wh));
+    Ellipse2D bottomCircle = getEllipseCenter(x, y - (0.7*wh/2), (0.3*wh), (0.3*wh));
+    Ellipse2D bottomClip = getEllipseCenter(x, y - (1*wh/2), (0.15*wh), (0.25*wh));
+
+    Area top = new Area(topCircle);
+    top.subtract(new Area(topClip));
+    Area bottom = new Area(bottomCircle);
+    bottom.subtract(new Area(bottomClip));
+
+    g2.fill(top);
+    g2.fill(bottom);
+  }
+
+  private void drawHammer(Graphics2D g2, int x, int y, int wh) {
+    // C coords
+    RoundRectangle2D handle = getRoundRectangleCenter(x, y, 0.2*wh, wh, 0.1*wh, 0.1*wh);
+    RoundRectangle2D head = getRoundRectangleCenter(x, y-0.7*wh/2, 0.7*wh, 0.7*wh/2, 0.1*wh, 0.1*wh);
+    g2.setColor(woodColor);
+    g2.fill(handle);
+    g2.setColor(stoneColor);
+    g2.fill(head);
+  }
+
+  private Ellipse2D getEllipseCenter(double x, double y, double w, double h) {
+    return new Ellipse2D.Double(x-w/2, y-h/2, w, h);
+  }
+
+  private RoundRectangle2D getRoundRectangleCenter(double x, double y, double w, double h, double arcw, double arch) {
+    return new RoundRectangle2D.Double(x-w/2, y-h/2, w, h, arcw, arch);
   }
 
   private void fillOvalCenter(Graphics2D g2, int x, int y, int w, int h) {
@@ -449,12 +544,14 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     }
 
     // Picking up items
-    GameObject collidingObject = getCurrentPlayer().getCollidingObject();
-    if (keyChar == 'e' && collidingObject != null) {
-      getCurrentPlayer().pickUpItem();
-      // Remove object from map
-      gameData.removeGameObject(collidingObject.getId());
-      removeGameObject(collidingObject.getId());
+    if (getCurrentPlayer() != null) {
+      GameObject collidingObject = getCurrentPlayer().getCollidingObject();
+      if (keyChar == 'e' && collidingObject != null) {
+        getCurrentPlayer().pickUpItem();
+        // Remove object from map
+        gameData.removeGameObject(collidingObject.getId());
+        removeGameObject(collidingObject.getId());
+      }
     }
   }
 
@@ -500,10 +597,12 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
         switch (objectFacing.getType()) {
           case GameObject.TREE:
             playSound("sound/tree_impact.wav");
-            objectFacing.damage(getCurrentPlayer().getDamage());
-            System.out.println("damaged!");
+            break;
+          case GameObject.BOULDER:
+            playSound("sound/stone_impact.wav");
             break;
         }
+        objectFacing.damage(getCurrentPlayer().getDamage());
         updateGameObject(objectFacing);
       }
     }
@@ -571,6 +670,12 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     FontMetrics metrics = getFontMetrics(font);
     g2.setFont(font);
     g2.drawString(string, x - metrics.stringWidth(string)/2, y+metrics.getHeight()-metrics.getDescent());
+  }
+
+  private void drawStringC(Graphics2D g2, String string, Font font, int x, int y) {
+    FontMetrics metrics = getFontMetrics(font);
+    g2.setFont(font);
+    g2.drawString(string, x - metrics.stringWidth(string)/2, y+(metrics.getHeight()-metrics.getDescent())/2);
   }
   
   private class AnimationThread extends Thread {
