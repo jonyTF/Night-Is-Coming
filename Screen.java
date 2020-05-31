@@ -3,6 +3,7 @@ import java.awt.Graphics2D;
 import java.awt.Graphics;
 import java.awt.Dimension;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.RenderingHints;
@@ -41,6 +42,9 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
   public static final int KEY_S = 2;
   public static final int KEY_D = 3;
 
+  public static final int CRAFT = 0;
+  public static final int CRAFT_ITEM = 1;
+
   private final Color skinColor = new Color(255, 219, 172);
   private final Color treeColor = new Color(72, 166, 70);
   private final Color grassColor = new Color(165, 212, 106);
@@ -59,10 +63,17 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
   private boolean playing;
   private boolean showInstructions;
   private String hintText;
+  private OverlayText overlayText;
 
   private JButton startBtn;
   private JButton instructionsBtn;
   private JButton closeBtn;
+
+  private DLList<Clickable> clickables;
+  private Clickable curClickable;
+
+  private int curMenu; // Specifies which menu is currently up. -1 means no menu
+  private CraftMenu craftMenu;
   
   public Screen() {
     this.setLayout(null);
@@ -84,6 +95,13 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     playing = false;
     showInstructions = false;
     hintText = "";
+    overlayText = new OverlayText();
+
+    clickables = new DLList<Clickable>();
+    curClickable = null;
+
+    curMenu = -1;
+    craftMenu = new CraftMenu();
 
     startBtn = new JButton("Start");
     startBtn.setBounds(SCREEN_WIDTH/2-75, SCREEN_HEIGHT*5/6, 150, 30);
@@ -147,6 +165,18 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
       if (hintText.length() > 0)
         drawHint(g2);
     }
+
+    if (curMenu != -1) {
+      switch (curMenu) {
+        case CRAFT:
+          drawCraftMenu(g2);
+          break;
+      }
+    }
+
+    // Draw overlay
+    if (overlayText.getText().length() > 0)
+      drawOverlay(g2);
   }
 
   private void drawInstructions(Graphics2D g2) {
@@ -177,6 +207,17 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     fillRectCenter(g2, SCREEN_WIDTH/2, SCREEN_HEIGHT-15, metrics.stringWidth(hintText) + 20, 30);
     g2.setColor(Color.white);
     drawStringTC(g2, hintText, font, SCREEN_WIDTH/2, SCREEN_HEIGHT-30);
+  }
+
+  private void drawOverlay(Graphics2D g2) {
+    // Draws an overlay that follows the mouse
+    Font font = new Font(Font.MONOSPACED, Font.PLAIN, 20);
+    FontMetrics metrics = getFontMetrics(font);
+
+    g2.setColor(new Color(0, 0, 0, 130));
+    g2.fillRect(overlayText.getX(), overlayText.getY(), metrics.stringWidth(overlayText.getText()) + 20, 30);
+    g2.setColor(Color.white);
+    drawStringTL(g2, overlayText.getText(), font, overlayText.getX() + 10, overlayText.getY());
   }
 
   private void drawPlayer(Graphics2D g2, Player p) {
@@ -335,8 +376,65 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     }
   }
 
+  private void drawCraftMenu(Graphics2D g2) {
+    // Draw at center of screen
+    // One big box displaying item + craft button
+    // 4 x 2 grid
+    int padding = 10;
+    int gridWH = 40;
+    int itemWH = (int)(.8*gridWH);
+    int bigBoxWH = 2*gridWH + padding;
+    int menuWH = padding*5 + gridWH*4;
+
+    int menuX = SCREEN_WIDTH/2 - menuWH/2;
+    int menuY = SCREEN_HEIGHT/2 - menuWH/2;
+
+    // Draw entire menu box
+    g2.setColor(new Color(0, 0, 0, 130));
+    g2.fillRect(menuX, menuY, menuWH, menuWH);
+
+    // Draw big box
+    g2.setColor(Color.white.darker());
+    g2.fillRect(SCREEN_WIDTH/2-bigBoxWH/2, menuY+padding, bigBoxWH, bigBoxWH);
+    
+    int cols = 4;
+    int rows = 2;
+    for (int i = 0; i < cols; i++) {
+      for (int j = 0; j < rows; j++) {
+        int x = menuX+padding + i*(gridWH+padding);
+        int y = menuY+padding*2+bigBoxWH + j*(gridWH+padding);
+
+        // draw box
+        g2.setColor(Color.white.darker());
+        g2.fillRect(x, y, gridWH, gridWH);
+        
+        int index = j*cols + i;
+        if (index < craftMenu.getItems().size()) {
+          CraftItem item = craftMenu.getItems().get(index);
+          clickables.add(new Clickable(CRAFT_ITEM, x, y, gridWH, gridWH, item));
+
+          if (!item.canCraftWith(getCurrentPlayer().getResources())) {
+            // draw red overlay showing you can't craft it
+            g2.setColor(new Color(230, 0, 0, 60));
+            g2.fillRect(x, y, gridWH, gridWH);
+          }
+          switch (item.getType()) {
+            case GameObject.PICKAXE:
+              break;
+            case GameObject.HAMMER:
+              drawHammer(g2, x+gridWH/2, y+gridWH/2, itemWH);
+              break;
+          }
+        }
+        
+      }
+    }
+  }
+
   private void drawCraftIcon(Graphics2D g2, int x, int y, int wh) {
     // x center, y top coords
+    clickables.add(new Clickable(CRAFT, x-wh/2, y, wh, wh));
+
     y += wh/2;
 
     AffineTransform old = g2.getTransform();
@@ -374,6 +472,19 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     g2.fill(handle);
     g2.setColor(stoneColor);
     g2.fill(head);
+  }
+
+  private String getCraftRequirements(CraftItem c) {
+    String s = "Requires ";
+    DLList<Integer> resources = c.getCost().getKeys();
+    for (int i = 0; i < resources.size(); i++) {
+      if (i != 0)
+        s += ", ";
+      
+      int resource = resources.get(i);
+      s += c.getCost().get(resource) + " " + GameObject.getTypeString(resource);
+    }
+    return s;
   }
 
   private Ellipse2D getEllipseCenter(double x, double y, double w, double h) {
@@ -589,7 +700,8 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
 
   public void mousePressed(MouseEvent e) {
     mouseDown = true;
-    if (getCurrentPlayer() != null) {
+    if (getCurrentPlayer() != null && curMenu == -1) {
+      // Damage object facing
       GameObject objectFacing = getCurrentPlayer().getObjectFacing();
       if (objectFacing == null || objectFacing.hasFlag(GameObject.IS_COLLECTABLE)) {
         playSound("sound/whoosh1.wav");
@@ -606,6 +718,15 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
         updateGameObject(objectFacing);
       }
     }
+
+    // Check for click on Clickables
+    if (curClickable != null) {
+      switch(curClickable.getType()) {
+        case CRAFT:
+          curMenu = CRAFT;
+          break;
+      }
+    }
   }
   
   public void mouseReleased(MouseEvent e) {
@@ -616,14 +737,43 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
   public void mouseDragged(MouseEvent e) {}
   public void mouseMoved(MouseEvent e) {
     if (windowFocused) {
-      // Get angle mouse is from center 
-      double x = e.getX() - SCREEN_WIDTH/2;
-      double y = SCREEN_HEIGHT/2 - e.getY();
-      double angleFacing = Player.calculateAngle(x, y);
+      // Display hand cursor when on clickable
+      overlayText.setText("");
+      boolean displayHandCursor = false;
+      for (int i = 0; i < clickables.size(); i++) {
+        Clickable clickable = clickables.get(i);
+        if (clickable.contains(e.getX(), e.getY())) {
+          curClickable = clickable;
+          displayHandCursor = true;
+          break;
+        }
+      } 
+      if (displayHandCursor) {
+        setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-      Player currentPlayer = getCurrentPlayer();
-      if (currentPlayer != null)
-        currentPlayer.setAngleFacing(angleFacing);
+        switch (curClickable.getType()) {
+          case CRAFT_ITEM:
+            overlayText.setX(e.getX());
+            overlayText.setY(e.getY());
+            overlayText.setText(getCraftRequirements((CraftItem)curClickable.getExtraData()));
+            break;
+        }
+      } else { 
+        setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+        curClickable = null;
+      }
+
+
+      if (curMenu == -1) {
+        // Get angle mouse is from center 
+        double x = e.getX() - SCREEN_WIDTH/2;
+        double y = SCREEN_HEIGHT/2 - e.getY();
+        double angleFacing = Player.calculateAngle(x, y);
+
+        Player currentPlayer = getCurrentPlayer();
+        if (currentPlayer != null)
+          currentPlayer.setAngleFacing(angleFacing);
+      }
     }
   }
 

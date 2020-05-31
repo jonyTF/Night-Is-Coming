@@ -36,6 +36,7 @@ public class GameObject implements Serializable, Comparable<GameObject> {
   public static final int TOOL_MELEE = 107; // Swords
   public static final int TOOL_RANGED = 108; // Bow and Arrows/guns
   public static final int HAMMER = 109;
+  public static final int PICKAXE = 110;
   
 
   // Dimensions
@@ -133,7 +134,7 @@ public class GameObject implements Serializable, Comparable<GameObject> {
     return x == go.getX() && y == go.getY();
   } 
 
-  public String getTypeString() {
+  public static String getTypeString(int type) {
     switch (type) {
       case PLAYER:
         return "player";
@@ -147,8 +148,16 @@ public class GameObject implements Serializable, Comparable<GameObject> {
         return "boulder";
       case STONE:
         return "stone";
+      case HAMMER:
+        return "hammer";
+      case PICKAXE:
+        return "pickaxe";
     }
     return "INVALID";
+  }
+
+  public String getTypeString() {
+    return getTypeString(type);
   }
 
   public String toString() {
