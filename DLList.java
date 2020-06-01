@@ -74,6 +74,17 @@ public class DLList < E extends Comparable > implements Serializable {
         return getNode(index).get();
     }
 
+    public E get(E data) {
+        Node < E > current = dummy.next();
+        for (int i = 0; i < size; i++) {
+            if (current.get().equals(data)) {
+                return current.get();
+            }
+            current = current.next();
+        }
+        return null;
+    }
+
     public void remove(int index) {
         Node < E > toRemove = getNode(index);
         Node < E > prev = toRemove.prev();

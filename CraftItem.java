@@ -2,6 +2,10 @@ public class CraftItem implements Comparable<CraftItem> {
   private int type;
   private MyHashMap<Integer, Integer> cost;
   private String description;
+
+  public CraftItem(int type) {
+    this(type, null, null);
+  } 
   
   public CraftItem(int type, MyHashMap<Integer, Integer> cost, String description) {
     this.type = type;
@@ -31,6 +35,18 @@ public class CraftItem implements Comparable<CraftItem> {
       }
     }
     return true;
+  }
+
+  public MyHashMap<Integer, Integer> craft(MyHashMap<Integer, Integer> resources) {
+    // returns a hashmap of the new resources map without the resources in cost
+    DLList<Integer> items = cost.getKeys();
+    for (int i = 0; i < items.size(); i++) {
+      int item = items.get(i);
+      int oldAmt = resources.get(item);
+      int newAmt = oldAmt - cost.get(item);
+      resources.put(item, newAmt);
+    }
+    return resources;
   }
 
   @Override

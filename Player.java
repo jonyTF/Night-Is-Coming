@@ -50,6 +50,7 @@ public class Player extends GameObject implements Serializable {
     resources.put(GameObject.STONE, 0);
 
     this.tools = new MyHashMap<Integer, Integer>();
+    tools.put(GameObject.TOOL_BUILD, GameObject.EMPTY);
     tools.put(GameObject.TOOL_UTIL, GameObject.EMPTY);
     tools.put(GameObject.TOOL_MELEE, GameObject.EMPTY);
     tools.put(GameObject.TOOL_RANGED, GameObject.EMPTY);
@@ -194,12 +195,20 @@ public class Player extends GameObject implements Serializable {
     }
   }
 
+  public void setResources(MyHashMap<Integer, Integer> resources) {
+    this.resources = resources;
+  } 
+
   public MyHashMap<Integer, Integer> getResources() {
     return resources;
   }
 
   public MyHashMap<Integer, Integer> getTools() {
     return tools;
+  }
+
+  public void setTool(int type, int tool) {
+    tools.put(type, tool);
   }
 
   public DLList<Integer> getInventory() {

@@ -32,11 +32,30 @@ public class GameObject implements Serializable, Comparable<GameObject> {
   public static final int GRASS = 103;
   public static final int BOULDER = 104;
   public static final int STONE = 105;
-  public static final int TOOL_UTIL = 106; // Hammers and such
-  public static final int TOOL_MELEE = 107; // Swords
-  public static final int TOOL_RANGED = 108; // Bow and Arrows/guns
-  public static final int HAMMER = 109;
-  public static final int PICKAXE = 110;
+  public static final int TOOL_BUILD = 106; // Hammers and such
+  public static final int TOOL_UTIL = 107; // Pickaxes and such
+  public static final int TOOL_MELEE = 108; // Swords
+  public static final int TOOL_RANGED = 109; // Bow and Arrows/guns
+  public static final int HAMMER = 110;
+  public static final int PICKAXE = 111;
+
+  // Tool Types Class to get the tool types of various craft items
+  public static class ToolTypesClass {
+    private MyHashMap<Integer, Integer> toolTypes;
+    
+    public ToolTypesClass() {
+      toolTypes = new MyHashMap<Integer, Integer>();
+      toolTypes.put(PICKAXE, TOOL_UTIL);
+      toolTypes.put(HAMMER, TOOL_BUILD);
+    }
+
+    public int getToolTypeOf(int tool) {
+      return toolTypes.get(tool);
+    }
+  }
+
+  public static ToolTypesClass toolTypes = new ToolTypesClass();
+
   
 
   // Dimensions

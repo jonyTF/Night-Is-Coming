@@ -7,6 +7,7 @@ import java.awt.Cursor;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.RenderingHints;
+import java.awt.Point;
 
 import java.awt.geom.Area;
 import java.awt.geom.RoundRectangle2D;
@@ -24,6 +25,9 @@ import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 
 import java.net.URL;
+import java.util.Arrays;
+import java.util.Date;
+
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
 
@@ -64,10 +68,12 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
   private boolean showInstructions;
   private String hintText;
   private OverlayText overlayText;
+  private long prevMouseMoveTime;
 
   private JButton startBtn;
   private JButton instructionsBtn;
   private JButton closeBtn;
+  private JButton craftBtn;
 
   private DLList<Clickable> clickables;
   private Clickable curClickable;
@@ -87,6 +93,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     id = -1;
     keyDown = new boolean[] {false, false, false, false};
     mouseDown = false;
+    prevMouseMoveTime = 0;
 
     hints = new RenderingHints(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
     hints.put(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -116,11 +123,18 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     this.add(instructionsBtn);
 
     closeBtn = new JButton("Close");
-    closeBtn.setBounds(SCREEN_WIDTH-20-100, 20, 100, 30);
+    closeBtn.setBounds(0, 0, 100, 30);
     closeBtn.setFocusable(false);
     closeBtn.addActionListener(this);
     closeBtn.setVisible(false);
     this.add(closeBtn);
+
+    craftBtn = new JButton("Craft");
+    craftBtn.setBounds(0, 0, 100, 30);
+    craftBtn.setFocusable(false);
+    craftBtn.addActionListener(this);
+    craftBtn.setVisible(false);
+    this.add(craftBtn);
   }
 
   public Dimension getPreferredSize() {
@@ -129,6 +143,9 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
 
   public void paintComponent(Graphics g) {
     super.paintComponent(g);
+
+    // Clear clickables
+    clickables = new DLList<Clickable>();
 
     // Set render options
     Graphics2D g2 = (Graphics2D)g;
@@ -196,6 +213,8 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     for (int i = 0; i < instructions.length; i++) {
       drawStringTL(g2, instructions[i], fontSmall, 20, 60+i*20);
     }
+
+    closeBtn.setLocation(SCREEN_WIDTH-20-100, 20);
   }
 
   private void drawHint(Graphics2D g2) {
@@ -343,7 +362,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     g2.fillRect(SCREEN_WIDTH-width, 0, width, SCREEN_HEIGHT);
 
     drawResources(g2, xCenter, 20, width);
-    drawInventory(g2, xCenter, SCREEN_WIDTH/4, width);
+    drawTools(g2, xCenter, SCREEN_WIDTH/4, width);
 
     drawCraftIcon(g2, xCenter, SCREEN_HEIGHT-10-width, (int)(.8*width));
   }
@@ -364,15 +383,27 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     }
   }
 
-  private void drawInventory(Graphics2D g2, int xCenter, int yStart, int width) {
+  private void drawTools(Graphics2D g2, int xCenter, int yStart, int width) {
     int slotWH = width-15;
 
     MyHashMap<Integer, Integer> tools = getCurrentPlayer().getTools();
     DLList<Integer> types = tools.getKeys();
     for (int i = 0; i < types.size(); i++) {
       int y = yStart+i*(slotWH + 10) + slotWH/2;
-      g2.setColor(Color.gray);
+      g2.setColor(Color.white.darker());
       fillRectCenter(g2, xCenter, y, slotWH, slotWH);
+      drawCraftItem(g2, tools.get(types.get(i)), xCenter, y, (int)(.8*slotWH));
+    }
+  }
+
+  private void drawCraftItem(Graphics2D g2, int type, int x, int y, int wh) {
+    // C coords
+    switch (type) {
+      case GameObject.PICKAXE:
+        break;
+      case GameObject.HAMMER:
+        drawHammer(g2, x, y, wh);
+        break;
     }
   }
 
@@ -384,31 +415,58 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     int gridWH = 40;
     int itemWH = (int)(.8*gridWH);
     int bigBoxWH = 2*gridWH + padding;
-    int menuWH = padding*5 + gridWH*4;
+    int bigItemWH = (int)(.8*bigBoxWH);
+    int menuW = padding*5 + gridWH*4;
+    int menuH = padding*6 + gridWH*4 + 60; // 60 is for the craft + close button
 
-    int menuX = SCREEN_WIDTH/2 - menuWH/2;
-    int menuY = SCREEN_HEIGHT/2 - menuWH/2;
+    int menuX = SCREEN_WIDTH/2 - menuW/2;
+    int menuY = SCREEN_HEIGHT/2 - menuH/2;
 
     // Draw entire menu box
     g2.setColor(new Color(0, 0, 0, 130));
-    g2.fillRect(menuX, menuY, menuWH, menuWH);
+    g2.fillRect(menuX, menuY, menuW, menuH);
 
     // Draw big box
     g2.setColor(Color.white.darker());
-    g2.fillRect(SCREEN_WIDTH/2-bigBoxWH/2, menuY+padding, bigBoxWH, bigBoxWH);
+    g2.fillRect(menuX+padding, menuY+padding, bigBoxWH, bigBoxWH);
+
+    // Draw cur item and its type and description
+    CraftItem curItem = craftMenu.getCurItem();
+    if (curItem != null) {
+      drawCraftItem(g2, craftMenu.getCurItemType(), menuX+padding + bigBoxWH/2, menuY+padding + bigBoxWH/2, bigItemWH);
+      int x = menuX+padding+bigBoxWH+padding;
+      int yStart = menuY+padding;
+      int width = menuX+menuW-padding-x;
+
+      Font fontBig = new Font(Font.MONOSPACED, Font.PLAIN, 20);
+      Font fontSmall = new Font(Font.MONOSPACED, Font.PLAIN, 15);
+
+      g2.setColor(Color.white);
+      BBox titleBBox = drawStringWordWrap(g2, GameObject.getTypeString(craftMenu.getCurItemType()).toUpperCase(), fontBig, x, yStart, width);
+      drawStringWordWrap(g2, curItem.getDescription(), fontSmall, x, (int)(yStart+titleBBox.getHeight()), width);
+
+      if (curItem.canCraftWith(getCurrentPlayer().getResources()))
+        craftBtn.setEnabled(true);
+      else 
+        craftBtn.setEnabled(false);
+    } else {
+      craftBtn.setEnabled(false);
+    }
     
     int cols = 4;
     int rows = 2;
     for (int i = 0; i < cols; i++) {
       for (int j = 0; j < rows; j++) {
         int x = menuX+padding + i*(gridWH+padding);
-        int y = menuY+padding*2+bigBoxWH + j*(gridWH+padding);
+        int y = menuY+padding*2+bigBoxWH + j*(gridWH+padding) + 30;
 
         // draw box
         g2.setColor(Color.white.darker());
         g2.fillRect(x, y, gridWH, gridWH);
         
         int index = j*cols + i;
+        
+        // draw all the craft items defined in craft menu 
         if (index < craftMenu.getItems().size()) {
           CraftItem item = craftMenu.getItems().get(index);
           clickables.add(new Clickable(CRAFT_ITEM, x, y, gridWH, gridWH, item));
@@ -418,17 +476,27 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
             g2.setColor(new Color(230, 0, 0, 60));
             g2.fillRect(x, y, gridWH, gridWH);
           }
-          switch (item.getType()) {
-            case GameObject.PICKAXE:
-              break;
-            case GameObject.HAMMER:
-              drawHammer(g2, x+gridWH/2, y+gridWH/2, itemWH);
-              break;
-          }
+
+          // draw the actual item
+          drawCraftItem(g2, item.getType(), x+gridWH/2, y+gridWH/2, itemWH);
         }
         
       }
     }
+
+    // Draw buttons
+    Point closeBtnPos = new Point(menuX+menuW-padding-100, menuY+menuH-padding-30);
+    if (!closeBtn.getLocation().equals(closeBtnPos))
+      closeBtn.setLocation(closeBtnPos);
+    closeBtn.setVisible(true);
+
+    Point craftBtnPos = new Point(menuX+padding, menuY+padding+bigBoxWH);
+    if (!craftBtn.getLocation().equals(craftBtnPos))
+      craftBtn.setLocation(craftBtnPos);
+    Dimension craftBtnDim = new Dimension(bigBoxWH, 30);
+    if (!craftBtn.getSize().equals(craftBtnDim))
+      craftBtn.setSize(craftBtnDim);
+    craftBtn.setVisible(true);
   }
 
   private void drawCraftIcon(Graphics2D g2, int x, int y, int wh) {
@@ -725,6 +793,10 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
         case CRAFT:
           curMenu = CRAFT;
           break;
+        case CRAFT_ITEM:
+          CraftItem item = (CraftItem)(curClickable.getExtraData());
+          craftMenu.setCurItemType(item.getType());
+          break;
       }
     }
   }
@@ -737,43 +809,46 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
   public void mouseDragged(MouseEvent e) {}
   public void mouseMoved(MouseEvent e) {
     if (windowFocused) {
-      // Display hand cursor when on clickable
-      overlayText.setText("");
-      boolean displayHandCursor = false;
-      for (int i = 0; i < clickables.size(); i++) {
-        Clickable clickable = clickables.get(i);
-        if (clickable.contains(e.getX(), e.getY())) {
-          curClickable = clickable;
-          displayHandCursor = true;
-          break;
-        }
-      } 
-      if (displayHandCursor) {
-        setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        switch (curClickable.getType()) {
-          case CRAFT_ITEM:
-            overlayText.setX(e.getX());
-            overlayText.setY(e.getY());
-            overlayText.setText(getCraftRequirements((CraftItem)curClickable.getExtraData()));
+      // Only update clickable cursor periodically (60fps)
+      Date date = new Date();
+      long curTime = date.getTime();
+      if (curTime - prevMouseMoveTime > 1000/60) {
+        prevMouseMoveTime = curTime;
+        // Display hand cursor when on clickable
+        overlayText.setText("");
+        boolean displayHandCursor = false;
+        for (int i = 0; i < clickables.size(); i++) {
+          Clickable clickable = clickables.get(i);
+          if (clickable.contains(e.getX(), e.getY())) {
+            curClickable = clickable;
+            displayHandCursor = true;
             break;
+          }
+        } 
+        if (displayHandCursor) {
+          setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+          switch (curClickable.getType()) {
+            case CRAFT_ITEM:
+              overlayText.setX(e.getX());
+              overlayText.setY(e.getY());
+              overlayText.setText(getCraftRequirements((CraftItem)curClickable.getExtraData()));
+              break;
+          }
+        } else { 
+          setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+          curClickable = null;
         }
-      } else { 
-        setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-        curClickable = null;
       }
 
+      // Get angle mouse is from center 
+      double x = e.getX() - SCREEN_WIDTH/2;
+      double y = SCREEN_HEIGHT/2 - e.getY();
+      double angleFacing = Player.calculateAngle(x, y);
 
-      if (curMenu == -1) {
-        // Get angle mouse is from center 
-        double x = e.getX() - SCREEN_WIDTH/2;
-        double y = SCREEN_HEIGHT/2 - e.getY();
-        double angleFacing = Player.calculateAngle(x, y);
-
-        Player currentPlayer = getCurrentPlayer();
-        if (currentPlayer != null)
-          currentPlayer.setAngleFacing(angleFacing);
-      }
+      Player currentPlayer = getCurrentPlayer();
+      if (currentPlayer != null)
+        currentPlayer.setAngleFacing(angleFacing);
     }
   }
 
@@ -790,10 +865,20 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
       instructionsBtn.setVisible(false);
       closeBtn.setVisible(true);
     } else if (e.getSource() == closeBtn) {
-      showInstructions = false;
-      startBtn.setVisible(true);
-      instructionsBtn.setVisible(true);
-      closeBtn.setVisible(false);
+      if (showInstructions) {
+        showInstructions = false;
+        startBtn.setVisible(true);
+        instructionsBtn.setVisible(true);
+        closeBtn.setVisible(false);
+      } else if (curMenu == CRAFT) {
+        curMenu = -1;
+        closeBtn.setVisible(false);
+        craftBtn.setVisible(false);
+      }
+    } else if (e.getSource() == craftBtn) {
+      CraftItem item = craftMenu.getCurItem();
+      getCurrentPlayer().setResources(item.craft(getCurrentPlayer().getResources()));
+      getCurrentPlayer().setTool(GameObject.toolTypes.getToolTypeOf(item.getType()), item.getType());
     }
 
     repaint();
@@ -826,6 +911,35 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     FontMetrics metrics = getFontMetrics(font);
     g2.setFont(font);
     g2.drawString(string, x - metrics.stringWidth(string)/2, y+(metrics.getHeight()-metrics.getDescent())/2);
+  }
+
+  private BBox drawStringWordWrap(Graphics2D g2, String string, Font font, int x, int y, int w) {
+    // Draws the string, constraining it to a certain width, going to a new line when it is past that width
+    // RETURNS the bounding box of the string
+    FontMetrics metrics = getFontMetrics(font);
+    g2.setFont(font);
+    String[] words = string.split(" ");
+    String curWord = words[0];
+    
+    int h = 0; // current height to be drawing at
+    for (int i = 1; i < words.length; i++) {
+      // Check that curword plus the new word is less than width
+      if (metrics.stringWidth(curWord + " " + words[i]) < w) {
+        // if so, add another word
+        curWord += " " + words[i];
+      } else {
+        // if not, draw the string on the cur line, and go to a new line
+        drawStringTL(g2, curWord, font, x, y+h);
+        h += metrics.getHeight() - metrics.getDescent();
+        curWord = words[i];
+      }
+    }
+    drawStringTL(g2, curWord, font, x, y+h);
+
+    // make h reflect actual height of drawn string
+    h += metrics.getHeight() - metrics.getDescent();
+
+    return new BBox(x, y, w, h);
   }
   
   private class AnimationThread extends Thread {
