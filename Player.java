@@ -142,28 +142,33 @@ public class Player extends GameObject implements Serializable {
         if (colliding) {
           if (gameObject.hasFlag(GameObject.IS_COLLIDABLE)) {
             // Prevent movement on collision
+            
+            /*double diffX = oldPos[0] - getX();
+            double diffY = oldPos[1] - getY();
+            double angle = calculateAngle(diffX, diffY);
+            double moveDist = 0.01;
+            double moveX = moveDist*Math.cos(angle);
+            double moveY = moveDist*Math.sin(angle);*/
+
+            // Move player back to old pos
             setX(oldPos[0]);
             setY(oldPos[1]);
+
+            // Keep moving player in a direction if still colliding
+            double moveDist = 0.01;
+            colliding = this.isCollidingWith(gameObject);
+            while (colliding) {
+              //setX(getX() + moveX);
+              //setY(getY() + moveY);
+              
+              setX(getX() + moveDist);
+              colliding = this.isCollidingWith(gameObject);
+            }
           } else if (gameObject.hasFlag(GameObject.IS_COLLECTABLE)) {
             // Set colliding object otherwise
             collidingObject = gameObject;
           }
         }
-
-        /*if (colliding) {
-          double diffX = oldPos[0] - getX();
-          double diffY = oldPos[1] - getY();
-          double angle = calculateAngle(diffX, diffY);
-          double moveDist = 0.01;
-          double moveX = moveDist*Math.cos(angle);
-          double moveY = moveDist*Math.sin(angle);
-          while (colliding) {
-            setX(getX() + moveX);
-            setY(getY() + moveY);
-
-            colliding = this.isCollidingWith(gameObject);
-          }
-        }*/
 
         // Add objects that are close to player
         double dist = this.getDistanceTo(gameObject);

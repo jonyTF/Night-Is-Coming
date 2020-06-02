@@ -38,6 +38,7 @@ public class GameObject implements Serializable, Comparable<GameObject> {
   public static final int TOOL_RANGED = 109; // Bow and Arrows/guns
   public static final int HAMMER = 110;
   public static final int PICKAXE = 111;
+  public static final int BUILD_BLOCK = 112;
 
   // Tool Types Class to get the tool types of various craft items
   public static class ToolTypesClass {
@@ -65,6 +66,7 @@ public class GameObject implements Serializable, Comparable<GameObject> {
   public static final double GRASS_WH = 0.05;
   public static final double BOULDER_WH = 0.6;
   public static final double STONE_WH = 0.2;
+  public static final double BUILD_BLOCK_WH = 0.5;
 
   // HP
   public static final int PLAYER_HP = 100;
@@ -127,6 +129,10 @@ public class GameObject implements Serializable, Comparable<GameObject> {
 
   public int getId() {
     return id;
+  }
+
+  public void setId(int id) {
+    this.id = id;
   }
 
   public int compareTo(GameObject go) {
@@ -248,6 +254,10 @@ public class GameObject implements Serializable, Comparable<GameObject> {
 
   public boolean hasFlag(int flag) {
     return flags.contains(flag);
+  }
+
+  public void addFlag(int flag) {
+    flags.add(flag);
   }
 
   public void damage(int amount) {

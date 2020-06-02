@@ -3,7 +3,7 @@ import java.awt.geom.Point2D;
 
 public class GameMap implements Serializable {
   public static final int INITIAL_PIXEL_TO_GRID_RATIO = 100;
-  public static final double BUILD_INCREMENT = 0.5; // where building blocks line up on the grid. 
+  public static final double BUILD_INCREMENT = GameObject.BUILD_BLOCK_WH; // where building blocks line up on the grid. 
   public static int curId = 0;
 
   private MyHashMap<Integer, GameObject> gameObjects;
@@ -47,11 +47,15 @@ public class GameMap implements Serializable {
   }
 
   public double roundBuildVal(double val) {
-    return Math.round(val*2) / 2.0;
+    return Math.round(val*1/BUILD_INCREMENT) * BUILD_INCREMENT;
   }
 
   public void clearGameMap() {
     gameObjects = new MyHashMap<Integer, GameObject>();
+  }
+
+  public void addGameObject(GameObject o) {
+    updateGameObject(o);
   }
 
   public void updateGameObject(GameObject o) {

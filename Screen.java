@@ -50,6 +50,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
   public static final int CRAFT = 0;
   public static final int CRAFT_ITEM = 1;
   public static final int BUILD = 2;
+  public static final int EQUIP = 3;
 
   private final Color skinColor = new Color(255, 219, 172);
   private final Color treeColor = new Color(72, 166, 70);
@@ -77,13 +78,14 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
   private JButton startBtn;
   private JButton instructionsBtn;
   private JButton closeBtn;
-  private JButton craftBtn;
+  private JButton actionBtn;
 
   private DLList<Clickable> clickables;
   private Clickable curClickable;
 
   private int curMode; // Specifies which menu is currently up. -1 means no menu
   private CraftMenu craftMenu;
+  private BuildData buildData;
   
   public Screen() {
     this.setLayout(null);
@@ -114,6 +116,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
 
     curMode = -1;
     craftMenu = new CraftMenu();
+    buildData = new BuildData();
 
     startBtn = new JButton("Start");
     startBtn.setBounds(SCREEN_WIDTH/2-75, SCREEN_HEIGHT*5/6, 150, 30);
@@ -134,12 +137,12 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     closeBtn.setVisible(false);
     this.add(closeBtn);
 
-    craftBtn = new JButton("Craft");
-    craftBtn.setBounds(0, 0, 100, 30);
-    craftBtn.setFocusable(false);
-    craftBtn.addActionListener(this);
-    craftBtn.setVisible(false);
-    this.add(craftBtn);
+    actionBtn = new JButton("Craft");
+    actionBtn.setBounds(0, 0, 100, 30);
+    actionBtn.setFocusable(false);
+    actionBtn.addActionListener(this);
+    actionBtn.setVisible(false);
+    this.add(actionBtn);
   }
 
   public Dimension getPreferredSize() {
@@ -183,11 +186,8 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
       // Draw sidebar
       drawSidebar(g2);
 
-      // Draw hint
-      if (hintText.length() > 0)
-        drawHint(g2);
     }
-
+    
     if (curMode != -1) {
       switch (curMode) {
         case CRAFT:
@@ -195,9 +195,19 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
           break;
         case BUILD:
           drawBuildOverlay(g2);
+          drawCurBuild(g2);
+          hintText = 
+            "Click to place blueprint\n" +
+            "Click already placed blueprint to remove it\n" +
+            "Scroll to select material\n" +
+            "Press E to cycle between items to build";
           break;
       }
     }
+    
+    // Draw hint
+    if (hintText.length() > 0)
+      drawHint(g2);
 
     // Draw overlay
     if (overlayText.length() > 0)
@@ -230,10 +240,17 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     Font font = new Font(Font.MONOSPACED, Font.PLAIN, 20);
     FontMetrics metrics = getFontMetrics(font);
     
-    g2.setColor(new Color(0, 0, 0, 130));
-    fillRectCenter(g2, SCREEN_WIDTH/2, SCREEN_HEIGHT-15, metrics.stringWidth(hintText) + 20, 30);
-    g2.setColor(Color.white);
-    drawStringTC(g2, hintText, font, SCREEN_WIDTH/2, SCREEN_HEIGHT-30);
+    String[] lines = hintText.split("\n");
+    int height = metrics.getHeight();
+    int yStart = SCREEN_HEIGHT-lines.length*height - 10;
+
+    for (int i = 0; i < lines.length; i++) {
+      int yCenter = yStart+i*height+height/2;
+      g2.setColor(new Color(0, 0, 0, 130));
+      fillRectCenter(g2, SCREEN_WIDTH/2, yCenter, metrics.stringWidth(lines[i]) + 20, height);
+      g2.setColor(Color.white);
+      drawStringC(g2, lines[i], font, SCREEN_WIDTH/2, yCenter);
+    }
   }
 
   private void drawOverlay(Graphics2D g2) {
@@ -242,12 +259,18 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     FontMetrics metrics = getFontMetrics(font);
 
     int x = (int)mousePos.getX();
-    int y = (int)mousePos.getY();
+    int yStart = (int)mousePos.getY();
 
-    g2.setColor(new Color(0, 0, 0, 130));
-    g2.fillRect(x, y, metrics.stringWidth(overlayText) + 20, 30);
-    g2.setColor(Color.white);
-    drawStringTL(g2, overlayText, font, x + 10, y);
+    String[] lines = overlayText.split("\n");
+    int height = metrics.getHeight();
+
+    for (int i = 0; i < lines.length; i++) {
+      int y = yStart+i*height;
+      g2.setColor(new Color(0, 0, 0, 130));
+      g2.fillRect(x, y, metrics.stringWidth(lines[i]) + 20, height);
+      g2.setColor(Color.white);
+      drawStringTL(g2, lines[i], font, x + 10, y);
+    }
   }
 
   private void drawPlayer(Graphics2D g2, Player p) {
@@ -260,7 +283,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
       x = SCREEN_WIDTH/2;
       y = SCREEN_HEIGHT/2;
     } else {
-      Point2D.Double pos = getRelativePos(p.getX(), p.getY(), getCurrentPlayer());
+      Point2D pos = getRelativePos(p.getX(), p.getY(), getCurrentPlayer());
       x = (int)pos.getX();
       y = (int)pos.getY();
     }
@@ -298,15 +321,15 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     
     for (int i = 0; i < ids.size(); i++) {
       GameObject o = gameObjects.get(ids.get(i));
-      Point2D.Double pos = getRelativePos(o.getX(), o.getY(), getCurrentPlayer());
+      Point2D pos = getRelativePos(o.getX(), o.getY(), getCurrentPlayer());
       int width = (int)toScreenValue(o.getWidth());
       int height = (int)toScreenValue(o.getHeight());
       
-      drawGameObject(g2, o.getType(), (int)pos.getX(), (int)pos.getY(), width, height); 
+      drawGameObject(g2, o.getType(), (int)pos.getX(), (int)pos.getY(), width, height, o); 
     }
   }
 
-  private void drawGameObject(Graphics2D g2, int type, int x, int y, int width, int height) {
+  private void drawGameObject(Graphics2D g2, int type, int x, int y, int width, int height, GameObject gameObject) {
     switch (type) {
       case GameObject.TREE:
         drawTree(g2, x, y, width);
@@ -322,6 +345,9 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
         break;
       case GameObject.STONE:
         drawStone(g2, x, y, width);
+        break;
+      case GameObject.BUILD_BLOCK:
+        drawBuildBlock(g2, (BuildBlock)gameObject, x, y, width);
         break;
     }
   }
@@ -389,7 +415,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     for (int i = 0; i < resourceTypes.size(); i++) {
       int type = resourceTypes.get(i);
       int yCenter = yStart+i*(resourceWH + 20) + resourceWH/2;
-      drawGameObject(g2, type, xCenter, yCenter, resourceWH, resourceWH);
+      drawGameObject(g2, type, xCenter, yCenter, resourceWH, resourceWH, null);
       g2.setColor(Color.white);
       drawStringC(g2, resources.get(type).toString(), font, xCenter, yCenter);
     }
@@ -405,6 +431,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
       g2.setColor(Color.white.darker());
       fillRectCenter(g2, xCenter, y, slotWH, slotWH);
       drawCraftItem(g2, tools.get(types.get(i)), xCenter, y, (int)(.8*slotWH));
+      clickables.add(new Clickable(EQUIP, xCenter-slotWH/2, y, slotWH, slotWH, types.get(i)));
     }
   }
 
@@ -458,11 +485,11 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
       drawStringWordWrap(g2, curItem.getDescription(), fontSmall, x, (int)(yStart+titleBBox.getHeight()), width);
 
       if (curItem.canCraftWith(getCurrentPlayer().getResources()))
-        craftBtn.setEnabled(true);
+        actionBtn.setEnabled(true);
       else 
-        craftBtn.setEnabled(false);
+        actionBtn.setEnabled(false);
     } else {
-      craftBtn.setEnabled(false);
+      actionBtn.setEnabled(false);
     }
     
     int cols = 4;
@@ -497,31 +524,75 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     }
 
     // Draw buttons
-    Point closeBtnPos = new Point(menuX+menuW-padding-100, menuY+menuH-padding-30);
-    if (!closeBtn.getLocation().equals(closeBtnPos))
-      closeBtn.setLocation(closeBtnPos);
+    closeBtn.setText("Close");
+    closeBtn.setBounds(menuX+menuW-padding-100, menuY+menuH-padding-30, 100, 30);
+    closeBtn.setEnabled(true);
     closeBtn.setVisible(true);
 
-    Point craftBtnPos = new Point(menuX+padding, menuY+padding+bigBoxWH);
-    if (!craftBtn.getLocation().equals(craftBtnPos))
-      craftBtn.setLocation(craftBtnPos);
-    Dimension craftBtnDim = new Dimension(bigBoxWH, 30);
-    if (!craftBtn.getSize().equals(craftBtnDim))
-      craftBtn.setSize(craftBtnDim);
-    craftBtn.setVisible(true);
+    actionBtn.setText("Craft");
+    actionBtn.setBounds(menuX+padding, menuY+padding+bigBoxWH, bigBoxWH, 30);
+    actionBtn.setVisible(true);
   }
 
   private void drawBuildOverlay(Graphics2D g2) {
-    int wh = (int)toScreenValue(GameMap.BUILD_INCREMENT);
+    int wh = (int)toScreenValue(GameObject.BUILD_BLOCK_WH);
     
     Point2D centeredMousePos = new Point2D.Double(mousePos.getX() - wh/2, mousePos.getY() - wh/2);
     Point2D mouseGridPos = getGridPosFromRelative(centeredMousePos, getCurrentPlayer());
-    Point2D roundedPos = getRelativePos(gameData.getGameMap().roundBuildPos(mouseGridPos), getCurrentPlayer());
+    Point2D roundedGridPos = gameData.getGameMap().roundBuildPos(mouseGridPos);
+    Point2D roundedPos = getRelativePos(roundedGridPos, getCurrentPlayer());
 
     int x = (int)roundedPos.getX();
     int y = (int)roundedPos.getY();
     g2.setColor(Color.white);
     g2.drawRect(x, y, wh, wh);
+
+    buildData.setCurBuildBlock(new BuildBlock(buildData.getCurMaterial(), roundedGridPos.getX(), roundedGridPos.getY()));
+    drawBuildBlock(g2, buildData.getCurBuildBlock(), x, y, wh);
+
+    // Draw buttons
+    closeBtn.setText("Cancel Build");
+    closeBtn.setBounds(SCREEN_WIDTH-50-150, 30, 150, 30);
+    closeBtn.setEnabled(true);
+    closeBtn.setVisible(true);
+
+    actionBtn.setText("Confirm Build");
+    actionBtn.setBounds(SCREEN_WIDTH-50-150, 0, 150, 30);
+    actionBtn.setEnabled(true);
+    actionBtn.setVisible(true);
+  }
+
+  private void drawCurBuild(Graphics2D g2) {
+    int wh = (int)toScreenValue(GameObject.BUILD_BLOCK_WH);
+    DLList<BuildBlock> curBuild = buildData.getCurBuild();
+    for (int i = 0; i < curBuild.size(); i++) {
+      BuildBlock b = curBuild.get(i);
+      Point2D pos = getRelativePos(new Point2D.Double(b.getX(), b.getY()), getCurrentPlayer());
+      drawBuildBlock(g2, b, (int)pos.getX(), (int)pos.getY(), wh);
+    }
+  }
+
+  private void drawBuildBlock(Graphics2D g2, BuildBlock b, int x, int y, int wh) {
+    // TL coords
+    Color outlineColor = Color.black;
+    Color color = Color.white;
+    switch (b.getMaterial()) {
+      case GameObject.WOOD:
+        outlineColor = lightWoodColor;
+        color = woodColor;
+        break;
+      case GameObject.STONE:
+        outlineColor = stoneColor.brighter();
+        color = stoneColor;
+        break;
+    }
+
+    x += wh/2;
+    y += wh/2;
+    g2.setColor(getColorWithOpacity(color, b.getOpacity()));
+    fillRectCenter(g2, x, y, wh, wh);
+    g2.setColor(getColorWithOpacity(outlineColor, b.getOpacity()));
+    drawRectCenter(g2, x, y, wh, wh);
   }
 
   private void drawBlueprintIcon(Graphics2D g2, int x, int y, int wh) {
@@ -636,13 +707,17 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     g2.drawRect(x-w/2, y-h/2, w, h);
   }
 
+  private Color getColorWithOpacity(Color color, int opacity) {
+    return new Color(color.getRed(), color.getGreen(), color.getBlue(), opacity);
+  }
+
   private Player getCurrentPlayer() {
     if (id == -1)
       return null;
     return gameData.getPlayerMap().get(id);
   }
 
-  private Point2D.Double getRelativePos(double x, double y, Player p) {
+  private Point2D getRelativePos(double x, double y, Player p) {
     // Gets position relative to player
 
     int newX = (int)(toScreenValue(x) - toScreenValue(p.getX()) + SCREEN_WIDTH/2);
@@ -651,17 +726,17 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     return new Point2D.Double(newX, newY);
   }
 
-  private Point2D.Double getRelativePos(Point pos, Player p) {
+  private Point2D getRelativePos(Point pos, Player p) {
     // Gets position relative to player
     return getRelativePos(pos.getX(), pos.getY(), p);
   }
 
-  private Point2D.Double getRelativePos(Point2D pos, Player p) {
+  private Point2D getRelativePos(Point2D pos, Player p) {
     // Gets position relative to player
     return getRelativePos(pos.getX(), pos.getY(), p);
   }
 
-  private Point2D.Double getGridPosFromRelative(double x, double y, Player p) {
+  private Point2D getGridPosFromRelative(double x, double y, Player p) {
     // Gets grid position based on position relative to player
 
     double newX = toGridValue(x - SCREEN_WIDTH/2 + toScreenValue(p.getX()));
@@ -670,12 +745,12 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     return new Point2D.Double(newX, newY);
   }
 
-  private Point2D.Double getGridPosFromRelative(Point pos, Player p) {
+  private Point2D getGridPosFromRelative(Point pos, Player p) {
     // Gets position relative to player
     return getGridPosFromRelative(pos.getX(), pos.getY(), p);
   }
 
-  private Point2D.Double getGridPosFromRelative(Point2D pos, Player p) {
+  private Point2D getGridPosFromRelative(Point2D pos, Player p) {
     // Gets position relative to player
     return getGridPosFromRelative(pos.getX(), pos.getY(), p);
   }
@@ -894,6 +969,19 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
         updateGameObject(objectFacing);
       }
     }
+  }
+  
+  public void mouseReleased(MouseEvent e) {
+    mouseDown = false;
+
+    // place/remove build block
+    if (curMode == BUILD) {
+      BuildBlock curBuildBlock = buildData.getCurBuildBlock();
+      if (!buildData.blockExistsAtPos(curBuildBlock.getX(), curBuildBlock.getY()))
+        buildData.addCurBlockToCurBuild();
+      else
+        buildData.removeBlockAtPos(curBuildBlock.getX(), curBuildBlock.getY());
+    }
 
     // Check for click on Clickables
     if (curClickable != null) {
@@ -911,10 +999,6 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
           break;
       }
     }
-  }
-  
-  public void mouseReleased(MouseEvent e) {
-    mouseDown = false;
   }
 
   // Mouse Motion events
@@ -986,12 +1070,29 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
       } else if (curMode == CRAFT) {
         curMode = -1;
         closeBtn.setVisible(false);
-        craftBtn.setVisible(false);
+        actionBtn.setVisible(false);
+      } else if (curMode == BUILD) {
+        curMode = -1;
+        buildData.resetCurBuild();
+        gameData.getGameMap().setZoom(1);
+        closeBtn.setVisible(false);
+        actionBtn.setVisible(false);
       }
-    } else if (e.getSource() == craftBtn) {
-      CraftItem item = craftMenu.getCurItem();
-      getCurrentPlayer().setResources(item.craft(getCurrentPlayer().getResources()));
-      getCurrentPlayer().setTool(GameObject.toolTypes.getToolTypeOf(item.getType()), item.getType());
+    } else if (e.getSource() == actionBtn) {
+      if (curMode == CRAFT) {
+        // Craft selected item
+        CraftItem item = craftMenu.getCurItem();
+        getCurrentPlayer().setResources(item.craft(getCurrentPlayer().getResources()));
+        getCurrentPlayer().setTool(GameObject.toolTypes.getToolTypeOf(item.getType()), item.getType());
+      } else if (curMode == BUILD) {
+        // Confirm build
+        curMode = -1;
+        buildData.addCurBuildToMap(gameData.getGameMap());
+        buildData.resetCurBuild();
+        gameData.getGameMap().setZoom(1);
+        closeBtn.setVisible(false);
+        actionBtn.setVisible(false);
+      }
     }
 
     repaint();
@@ -1115,5 +1216,17 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
         }
       } 
     }
+  }
+
+  public static void setTimeout(Runnable runnable, int delay){
+    new Thread(() -> {
+      try {
+        Thread.sleep(delay);
+        runnable.run();
+      }
+      catch (Exception e){
+        System.err.println(e);
+      }
+    }).start();
   }
 }
