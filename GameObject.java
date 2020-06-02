@@ -23,6 +23,7 @@ public class GameObject implements Serializable, Comparable<GameObject> {
   public static final int IS_COLLECTABLE = 4;
   public static final int IS_RESOURCE = 5;
   public static final int SAME_WH = 6; // If width and height are the same
+  public static final int IS_BLUEPRINT = 7;
 
   // Types
   public static final int EMPTY = -1;
@@ -40,25 +41,6 @@ public class GameObject implements Serializable, Comparable<GameObject> {
   public static final int PICKAXE = 111;
   public static final int BUILD_BLOCK = 112;
 
-  // Tool Types Class to get the tool types of various craft items
-  public static class ToolTypesClass {
-    private MyHashMap<Integer, Integer> toolTypes;
-    
-    public ToolTypesClass() {
-      toolTypes = new MyHashMap<Integer, Integer>();
-      toolTypes.put(PICKAXE, TOOL_UTIL);
-      toolTypes.put(HAMMER, TOOL_BUILD);
-    }
-
-    public int getToolTypeOf(int tool) {
-      return toolTypes.get(tool);
-    }
-  }
-
-  public static ToolTypesClass toolTypes = new ToolTypesClass();
-
-  
-
   // Dimensions
   public static final double PLAYER_WH = 0.5;
   public static final double TREE_WH = 0.3;
@@ -72,6 +54,10 @@ public class GameObject implements Serializable, Comparable<GameObject> {
   public static final int PLAYER_HP = 100;
   public static final int TREE_HP = 5;
   public static final int BOULDER_HP = 10;
+  public static final int BUILD_BLOCK_HP = 10;
+
+  // Damage and build power
+  public static final double HAMMER_BUILD_AMT = 0.1;
 
   public GameObject(int id, double x, double y) {
     this(id, -1, x, y, 0, 0, 1, 1, new int[0]);
@@ -159,6 +145,26 @@ public class GameObject implements Serializable, Comparable<GameObject> {
     return x == go.getX() && y == go.getY();
   } 
 
+  public static int getToolTypeOf(int tool) {
+    switch (tool) {
+      case HAMMER:
+        return TOOL_BUILD;
+      case PICKAXE:
+        return TOOL_UTIL;
+      default:
+        return -1;
+    }
+  }
+
+  public static double getBuildAmtOf(int tool) {
+    switch (tool) {
+      case HAMMER:
+        return HAMMER_BUILD_AMT;
+      default:
+        return 0;
+    }
+  }
+
   public static String getTypeString(int type) {
     switch (type) {
       case PLAYER:
@@ -194,6 +200,20 @@ public class GameObject implements Serializable, Comparable<GameObject> {
   }
 
   public double getY() {
+    return y;
+  }
+
+  public double getCenterX() {
+    if (hasFlag(TL_COORDS)) {
+      return x + getWidth()/2;
+    }
+    return x;
+  }
+
+  public double getCenterY() {
+    if (hasFlag(TL_COORDS)) {
+      return y + getHeight()/2;
+    }
     return y;
   }
 
@@ -252,12 +272,16 @@ public class GameObject implements Serializable, Comparable<GameObject> {
     return flags;
   }
 
-  public boolean hasFlag(int flag) {
+  public boolean hasFlag(Integer flag) {
     return flags.contains(flag);
   }
 
-  public void addFlag(int flag) {
+  public void addFlag(Integer flag) {
     flags.add(flag);
+  }
+
+  public void removeFlag(Integer flag) {
+    flags.remove(flag);
   }
 
   public void damage(int amount) {

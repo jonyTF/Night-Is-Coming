@@ -13,9 +13,10 @@ public class BuildBlock extends GameObject {
       x, 
       y, 
       GameObject.BUILD_BLOCK_WH,
-      GameObject.PLAYER_HP, // TODO: CHANGE!!
+      GameObject.BUILD_BLOCK_HP,
       new int[]{
         GameObject.TL_COORDS,
+        GameObject.IS_BLUEPRINT
       }
     );
 
@@ -44,6 +45,7 @@ public class BuildBlock extends GameObject {
     } else {
       buildProgress = 1;
       addFlag(GameObject.IS_COLLIDABLE);
+      removeFlag(GameObject.IS_BLUEPRINT);
     }
   }
 }

@@ -34,6 +34,12 @@ public class BuildData {
     curBuild = new DLList<BuildBlock>();
   }
 
+  public void returnResourcesToPlayer(Player p) {
+    for (int i = 0; i < curBuild.size(); i++) {
+      p.changeResources(curBuild.get(i).getMaterial(), 1);
+    }
+  }
+
   public void addCurBlockToCurBuild() {
     if (curBuildBlock != null)
       curBuild.add(curBuildBlock);
@@ -47,11 +53,12 @@ public class BuildData {
     return curBuild.contains(new BuildBlock(-1, x, y));
   }
 
-  public void addCurBuildToMap(GameMap m) {
+  public void addCurBuildToMap(GameMap m, Screen sc) {
     for (int i = 0; i < curBuild.size(); i++) {
       BuildBlock b = curBuild.get(i);
       b.setId(GameMap.getNewId());
       m.addGameObject(b);
+      sc.updateGameObject(b);
     }
   }
 }

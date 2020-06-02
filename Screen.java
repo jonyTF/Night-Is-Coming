@@ -24,9 +24,10 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import java.awt.event.MouseWheelListener;
+import java.awt.event.MouseWheelEvent;
 
 import java.net.URL;
-import java.util.Arrays;
 import java.util.Date;
 
 import javax.sound.sampled.AudioSystem;
@@ -38,7 +39,7 @@ import javax.swing.JButton;
 import java.io.*;
 import java.net.*;
 
-public class Screen extends JPanel implements KeyListener, FocusListener, MouseListener, MouseMotionListener, ActionListener {
+public class Screen extends JPanel implements KeyListener, FocusListener, MouseListener, MouseMotionListener, ActionListener, MouseWheelListener {
   public static final int SCREEN_WIDTH = 800;
   public static final int SCREEN_HEIGHT = 600;
 
@@ -72,6 +73,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
   private boolean playing;
   private boolean showInstructions;
   private String hintText;
+  private String tempHintText;
   private String overlayText;
   private long prevMouseMoveTime;
 
@@ -93,6 +95,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     this.addFocusListener(this);
     this.addMouseListener(this);
     this.addMouseMotionListener(this);
+    this.addMouseWheelListener(this);
     this.setFocusable(true);
 
     gameData = new GameData();
@@ -109,6 +112,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     playing = false;
     showInstructions = false;
     hintText = "";
+    tempHintText = "";
     overlayText = "";
 
     clickables = new DLList<Clickable>();
@@ -199,14 +203,13 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
           hintText = 
             "Click to place blueprint\n" +
             "Click already placed blueprint to remove it\n" +
-            "Scroll to select material\n" +
-            "Press E to cycle between items to build";
+            "Scroll to select material";
           break;
       }
     }
     
     // Draw hint
-    if (hintText.length() > 0)
+    if (hintText.length() > 0 || tempHintText.length() > 0)
       drawHint(g2);
 
     // Draw overlay
@@ -222,11 +225,29 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     drawStringTC(g2, "Instructions", new Font(Font.MONOSPACED, Font.PLAIN, 40), SCREEN_WIDTH/2, 20);
 
     String[] instructions = {
-      "Use WASD to move",
-      "Press E to pick up an item",
-      "Move your mouse to aim",
-      "Tap your mouse repeatedly while aiming at an object to break it",
-      "Click items in your inventory to equip them"
+      "Note: I was going to add more features to this game (zombies",
+      "  and such), but unfortunately ran out of time :\\ As of",
+      "  right now, you can destroy trees and boulders, craft some",
+      "  tools, and build forts together with your fellow survivors.",
+      "  Combat with zombies has not yet been implemented.",
+      "",
+      "Objective: Collect resources, craft tools, and build a fort to",
+      "  survive the night",
+      "",
+      "Controls: ",
+      "  -Use WASD to move",
+      "  -Press E to pick up items",
+      "  -Move your mouse to aim",
+      "  -Tap your mouse repeatedly while aiming at an object to break", 
+      "   it",
+      "  -Click items in your inventory on the right to equip them",
+      "  -Click the craft/build icons on the right to open up",
+      "   craft/build menus",
+      "",
+      "Building: ",
+      "  You start by placing a 'blueprint' of what you want to build",
+      "  Then, after confirming the build, you whack the blueprint",
+      "  areas with a hammer to construct it."
     };
     for (int i = 0; i < instructions.length; i++) {
       drawStringTL(g2, instructions[i], fontSmall, 20, 60+i*20);
@@ -240,7 +261,8 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     Font font = new Font(Font.MONOSPACED, Font.PLAIN, 20);
     FontMetrics metrics = getFontMetrics(font);
     
-    String[] lines = hintText.split("\n");
+    String text = tempHintText.length() > 0 ? tempHintText : hintText;
+    String[] lines = text.split("\n");
     int height = metrics.getHeight();
     int yStart = SCREEN_HEIGHT-lines.length*height - 10;
 
@@ -251,6 +273,11 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
       g2.setColor(Color.white);
       drawStringC(g2, lines[i], font, SCREEN_WIDTH/2, yCenter);
     }
+  }
+
+  private void setTempHint(String text, int ms) {
+    tempHintText = text;
+    setTimeout(() -> {tempHintText = "";}, ms);
   }
 
   private void drawOverlay(Graphics2D g2) {
@@ -264,6 +291,17 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     String[] lines = overlayText.split("\n");
     int height = metrics.getHeight();
 
+    int maxWidth = 0;
+    for (int i = 0; i < lines.length; i++) {
+      int width = metrics.stringWidth(lines[i]);
+      if (width > maxWidth)
+        maxWidth = width;
+    }
+
+    if (x + maxWidth > SCREEN_WIDTH) {
+      x -= maxWidth + 20;
+    }
+
     for (int i = 0; i < lines.length; i++) {
       int y = yStart+i*height;
       g2.setColor(new Color(0, 0, 0, 130));
@@ -276,6 +314,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
   private void drawPlayer(Graphics2D g2, Player p) {
     int playerWH = (int)toScreenValue(p.getWidth());
     int handWH = 3*playerWH/10;
+    int toolWH = 2*handWH;
     
     // Get body coords
     int x, y;
@@ -299,6 +338,10 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     fillOvalCenter(g2, x, y, playerWH, playerWH);
     //g2.setColor(Color.black);
     //g2.drawOval(x-playerWH/2, y-playerWH/2, playerWH, playerWH);
+
+    // Draw equipped item in right hand
+    double toolAngle = -(p.getAngleFacing() + 0.5 - Math.PI/2);
+    drawGameObject(g2, p.getCurTool(), hand1X, hand1Y, toolWH, toolWH, toolAngle);
     
     // Draw hands
     g2.setColor(skinColor);
@@ -329,7 +372,22 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     }
   }
 
+  private void drawGameObject(Graphics2D g2, int type, int x, int y, int width, int height) {
+    drawGameObject(g2, type, x, y, width, height, null, 0);
+  }
+
   private void drawGameObject(Graphics2D g2, int type, int x, int y, int width, int height, GameObject gameObject) {
+    drawGameObject(g2, type, x, y, width, height, gameObject, 0);
+  }
+
+  private void drawGameObject(Graphics2D g2, int type, int x, int y, int width, int height, double rotation) {
+    drawGameObject(g2, type, x, y, width, height, null, rotation);
+  }
+
+  private void drawGameObject(Graphics2D g2, int type, int x, int y, int width, int height, GameObject gameObject, double rotation) {
+    // C coordinates
+    AffineTransform old = g2.getTransform();
+    g2.rotate(rotation, x, y);
     switch (type) {
       case GameObject.TREE:
         drawTree(g2, x, y, width);
@@ -349,7 +407,14 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
       case GameObject.BUILD_BLOCK:
         drawBuildBlock(g2, (BuildBlock)gameObject, x, y, width);
         break;
+      case GameObject.PICKAXE:
+        drawPickaxe(g2, x, y, width);
+        break;
+      case GameObject.HAMMER:
+        drawHammer(g2, x, y, width);
+        break;
     }
+    g2.setTransform(old);
   }
   
   private void drawTree(Graphics2D g2, int x, int y, int trunkWH) {
@@ -427,22 +492,18 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     MyHashMap<Integer, Integer> tools = getCurrentPlayer().getTools();
     DLList<Integer> types = tools.getKeys();
     for (int i = 0; i < types.size(); i++) {
-      int y = yStart+i*(slotWH + 10) + slotWH/2;
+      int yCenter = yStart+i*(slotWH + 10) + slotWH/2;
+      int type = types.get(i);
       g2.setColor(Color.white.darker());
-      fillRectCenter(g2, xCenter, y, slotWH, slotWH);
-      drawCraftItem(g2, tools.get(types.get(i)), xCenter, y, (int)(.8*slotWH));
-      clickables.add(new Clickable(EQUIP, xCenter-slotWH/2, y, slotWH, slotWH, types.get(i)));
-    }
-  }
+      fillRectCenter(g2, xCenter, yCenter, slotWH, slotWH);
+      drawGameObject(g2, tools.get(type), xCenter, yCenter, (int)(.8*slotWH), (int)(.8*slotWH));
 
-  private void drawCraftItem(Graphics2D g2, int type, int x, int y, int wh) {
-    // C coords
-    switch (type) {
-      case GameObject.PICKAXE:
-        break;
-      case GameObject.HAMMER:
-        drawHammer(g2, x, y, wh);
-        break;
+      if (getCurrentPlayer().getCurToolType() == type) {
+        g2.setColor(Color.white);
+        drawRectCenter(g2, xCenter, yCenter, slotWH, slotWH);
+      }
+
+      clickables.add(new Clickable(EQUIP, xCenter-slotWH/2, yCenter-slotWH/2, slotWH, slotWH, type));
     }
   }
 
@@ -472,7 +533,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     // Draw cur item and its type and description
     CraftItem curItem = craftMenu.getCurItem();
     if (curItem != null) {
-      drawCraftItem(g2, craftMenu.getCurItemType(), menuX+padding + bigBoxWH/2, menuY+padding + bigBoxWH/2, bigItemWH);
+      drawGameObject(g2, craftMenu.getCurItemType(), menuX+padding + bigBoxWH/2, menuY+padding + bigBoxWH/2, bigItemWH, bigItemWH);
       int x = menuX+padding+bigBoxWH+padding;
       int yStart = menuY+padding;
       int width = menuX+menuW-padding-x;
@@ -517,7 +578,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
           }
 
           // draw the actual item
-          drawCraftItem(g2, item.getType(), x+gridWH/2, y+gridWH/2, itemWH);
+          drawGameObject(g2, item.getType(), x+gridWH/2, y+gridWH/2, itemWH, itemWH);
         }
         
       }
@@ -658,6 +719,19 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
 
     g2.fill(top);
     g2.fill(bottom);
+  }
+
+  private void drawPickaxe(Graphics2D g2, int x, int y, int wh) {
+    RoundRectangle2D handle = getRoundRectangleCenter(x, y, 0.2*wh, wh, 0.1*wh, 0.1*wh);
+    Ellipse2D topOval = getEllipseCenter(x, y - (0.6*wh/2), (0.8*wh), (0.5*wh));
+    Ellipse2D topClip = getEllipseCenter(x, y - (0.2*wh/2), (0.8*wh), (0.5*wh));
+    Area top = new Area(topOval);
+    top.subtract(new Area(topClip));
+
+    g2.setColor(woodColor);
+    g2.fill(handle);
+    g2.setColor(new Color(woodColor.getRed() - 15, woodColor.getGreen() - 15, woodColor.getBlue() - 15));
+    g2.fill(top);
   }
 
   private void drawHammer(Graphics2D g2, int x, int y, int wh) {
@@ -865,7 +939,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     sendData(new Data(Data.UPDATE_PLAYER, getCurrentPlayer()));
   }
 
-  private void updateGameObject(GameObject gameObject) {
+  public void updateGameObject(GameObject gameObject) {
     sendData(new Data(Data.UPDATE_GAME_OBJECT, gameObject));
   }
 
@@ -945,9 +1019,11 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
   }
 
   // Mouse events
-  public void mouseClicked(MouseEvent e) {}
   public void mouseEntered(MouseEvent e) {}
   public void mouseExited(MouseEvent e) {}
+
+  public void mouseClicked(MouseEvent e) {
+  }
 
   public void mousePressed(MouseEvent e) {
     mouseDown = true;
@@ -957,30 +1033,57 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
       if (objectFacing == null || objectFacing.hasFlag(GameObject.IS_COLLECTABLE)) {
         playSound("sound/whoosh1.wav");
       } else {
-        switch (objectFacing.getType()) {
-          case GameObject.TREE:
-            playSound("sound/tree_impact.wav");
-            break;
-          case GameObject.BOULDER:
-            playSound("sound/stone_impact.wav");
-            break;
+        if (objectFacing.hasFlag(GameObject.IS_BLUEPRINT)) {
+          if (getCurrentPlayer().getCurToolType() == GameObject.TOOL_BUILD) {
+            BuildBlock buildBlock = (BuildBlock)objectFacing;
+            buildBlock.build(GameObject.getBuildAmtOf(getCurrentPlayer().getCurTool()));
+            playSound(Math.random() > .5 ? "sound/build1.wav" : "sound/build2.wav");
+            updateGameObject(objectFacing);
+          } else {
+            setTempHint("You need to equip a hammer to build blueprints!", 3000);
+          }
+        } else {
+          boolean dealDamage = true;
+          switch (objectFacing.getType()) {
+            case GameObject.TREE:
+              playSound("sound/tree_impact.wav");
+              break;
+            case GameObject.BOULDER:
+              playSound("sound/stone_impact.wav");
+              dealDamage = getCurrentPlayer().getCurTool() == GameObject.PICKAXE;
+              if (!dealDamage) {
+                setTempHint("You need to equip a pickaxe to destroy boulders!", 3000);
+              }
+              break;
+            case GameObject.BUILD_BLOCK:
+              BuildBlock buildBlock = (BuildBlock)objectFacing;
+              if (buildBlock.getMaterial() == GameObject.WOOD)
+                playSound("sound/tree_impact.wav");
+              else if (buildBlock.getMaterial() == GameObject.STONE)
+                playSound("sound/stone_impact.wav");
+              break;
+          }
+          if (dealDamage) {
+            objectFacing.damage(getCurrentPlayer().getDamage());
+            updateGameObject(objectFacing);
+          }
         }
-        objectFacing.damage(getCurrentPlayer().getDamage());
-        updateGameObject(objectFacing);
       }
     }
-  }
-  
-  public void mouseReleased(MouseEvent e) {
-    mouseDown = false;
 
     // place/remove build block
     if (curMode == BUILD) {
       BuildBlock curBuildBlock = buildData.getCurBuildBlock();
-      if (!buildData.blockExistsAtPos(curBuildBlock.getX(), curBuildBlock.getY()))
-        buildData.addCurBlockToCurBuild();
-      else
+      if (!buildData.blockExistsAtPos(curBuildBlock.getX(), curBuildBlock.getY())) {
+        boolean enoughResources = getCurrentPlayer().changeResources(curBuildBlock.getMaterial(), -1);
+        if (enoughResources)
+          buildData.addCurBlockToCurBuild();
+        else
+          setTempHint("You don't have enough resources!", 3000);
+      } else {
+        getCurrentPlayer().changeResources(curBuildBlock.getMaterial(), 1);
         buildData.removeBlockAtPos(curBuildBlock.getX(), curBuildBlock.getY());
+      }
     }
 
     // Check for click on Clickables
@@ -997,8 +1100,20 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
           curMode = BUILD;
           gameData.getGameMap().setZoom(0.5);
           break;
+        case EQUIP:
+          int toolType = (int)curClickable.getExtraData();
+          if (toolType != getCurrentPlayer().getCurToolType()) {
+            getCurrentPlayer().equip(toolType);
+          } else {
+            getCurrentPlayer().equip(-1); 
+          }
+          break;
       }
     }
+  }
+  
+  public void mouseReleased(MouseEvent e) {
+    mouseDown = false;
   }
 
   // Mouse Motion events
@@ -1040,6 +1155,12 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
             case CRAFT_ITEM:
               overlayText = getCraftRequirements((CraftItem)curClickable.getExtraData());
               break;
+            case CRAFT:
+              overlayText = "Craft";
+              break;
+            case BUILD:
+              overlayText = "Build";
+              break;
           }
         } else { 
           setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
@@ -1073,6 +1194,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
         actionBtn.setVisible(false);
       } else if (curMode == BUILD) {
         curMode = -1;
+        buildData.returnResourcesToPlayer(getCurrentPlayer());
         buildData.resetCurBuild();
         gameData.getGameMap().setZoom(1);
         closeBtn.setVisible(false);
@@ -1083,11 +1205,11 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
         // Craft selected item
         CraftItem item = craftMenu.getCurItem();
         getCurrentPlayer().setResources(item.craft(getCurrentPlayer().getResources()));
-        getCurrentPlayer().setTool(GameObject.toolTypes.getToolTypeOf(item.getType()), item.getType());
+        getCurrentPlayer().setTool(GameObject.getToolTypeOf(item.getType()), item.getType());
       } else if (curMode == BUILD) {
         // Confirm build
         curMode = -1;
-        buildData.addCurBuildToMap(gameData.getGameMap());
+        buildData.addCurBuildToMap(gameData.getGameMap(), this);
         buildData.resetCurBuild();
         gameData.getGameMap().setZoom(1);
         closeBtn.setVisible(false);
@@ -1096,6 +1218,16 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
     }
 
     repaint();
+  }
+
+  // Mouse wheel listener
+  public void mouseWheelMoved(MouseWheelEvent e) {
+    int notches = e.getWheelRotation();
+    if (notches < 0) {
+      buildData.setCurMaterial(GameObject.WOOD);
+    } else {
+      buildData.setCurMaterial(GameObject.STONE);
+    }
   }
 
   public void playSound(String filename) {
@@ -1209,7 +1341,7 @@ public class Screen extends JPanel implements KeyListener, FocusListener, MouseL
             sendPlayerData();
 
           try {
-            Thread.sleep(50);
+            Thread.sleep(1000/30);
           } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
           }

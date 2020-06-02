@@ -18,6 +18,7 @@ public class Player extends GameObject implements Serializable {
   private MyHashMap<Integer, Integer> resources; // map containing the type of resource and the amount of that resource
   private MyHashMap<Integer, Integer> tools; // map containing the type of tool and the tool that it is
   private DLList<Integer> inventory; // inventory contains all the other items such as weapons, blueprints, etc.
+  private int curToolType;
 
   private long prevMoveTime;
   private long curTime;
@@ -54,6 +55,7 @@ public class Player extends GameObject implements Serializable {
     tools.put(GameObject.TOOL_UTIL, GameObject.EMPTY);
     tools.put(GameObject.TOOL_MELEE, GameObject.EMPTY);
     tools.put(GameObject.TOOL_RANGED, GameObject.EMPTY);
+    curToolType = -1;
 
     Date date = new Date();
     this.curTime = date.getTime();
@@ -143,25 +145,24 @@ public class Player extends GameObject implements Serializable {
           if (gameObject.hasFlag(GameObject.IS_COLLIDABLE)) {
             // Prevent movement on collision
             
-            /*double diffX = oldPos[0] - getX();
+            double diffX = oldPos[0] - getX();
             double diffY = oldPos[1] - getY();
             double angle = calculateAngle(diffX, diffY);
             double moveDist = 0.01;
             double moveX = moveDist*Math.cos(angle);
-            double moveY = moveDist*Math.sin(angle);*/
+            double moveY = moveDist*Math.sin(angle);
 
             // Move player back to old pos
             setX(oldPos[0]);
             setY(oldPos[1]);
 
             // Keep moving player in a direction if still colliding
-            double moveDist = 0.01;
             colliding = this.isCollidingWith(gameObject);
             while (colliding) {
-              //setX(getX() + moveX);
-              //setY(getY() + moveY);
+              setX(getX() + moveX);
+              setY(getY() + moveY);
               
-              setX(getX() + moveDist);
+              //setX(getX() + moveDist);
               colliding = this.isCollidingWith(gameObject);
             }
           } else if (gameObject.hasFlag(GameObject.IS_COLLECTABLE)) {
@@ -200,6 +201,17 @@ public class Player extends GameObject implements Serializable {
     }
   }
 
+  public boolean changeResources(int type, int change) {
+    int oldVal = resources.get(type);
+    int newVal = oldVal + change;
+    if (newVal >= 0) {
+      resources.put(type, newVal);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   public void setResources(MyHashMap<Integer, Integer> resources) {
     this.resources = resources;
   } 
@@ -214,6 +226,20 @@ public class Player extends GameObject implements Serializable {
 
   public void setTool(int type, int tool) {
     tools.put(type, tool);
+  }
+
+  public void equip(int type) {
+    curToolType = type;
+  }
+
+  public int getCurToolType() {
+    return curToolType;
+  }
+
+  public int getCurTool() {
+    if (curToolType == -1)
+      return -1;
+    return tools.get(curToolType);
   }
 
   public DLList<Integer> getInventory() {
@@ -235,8 +261,8 @@ public class Player extends GameObject implements Serializable {
   }
 
   public double calculateAngleToObject(GameObject o) {
-    double xDiff = o.getX() - this.getX();
-    double yDiff = this.getY() - o.getY();
+    double xDiff = o.getCenterX() - this.getCenterX();
+    double yDiff = this.getCenterY() - o.getCenterY();
     return calculateAngle(xDiff, yDiff);
   }
 

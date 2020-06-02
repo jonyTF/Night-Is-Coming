@@ -10,27 +10,41 @@ public class GameMap implements Serializable {
   private double zoom;
   private int width;
   private int height;
+  private DLList<Point2DComparable> prevPoints;
 
   public GameMap(int width, int height) {
     gameObjects = new MyHashMap<Integer, GameObject>();
     zoom = 1;
     this.width = width;
     this.height = height;
+    prevPoints = new DLList<Point2DComparable>();
   }
 
   public void generateGameMap() {
     clearGameMap();
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 20; i++) {
       int randX = (int)(Math.random() * width);
       int randY = (int)(Math.random() * height);
-      addTree(randX, randY);
+      Point2DComparable point = new Point2DComparable(randX, randY);
+      if (!prevPoints.contains(point)) {
+        addTree(randX, randY);
+        prevPoints.add(point);
+      } else {
+        i--;
+      }
     }
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 20; i++) {
       int randX = (int)(Math.random() * width);
       int randY = (int)(Math.random() * height);
-      addBoulder(randX, randY);
+      Point2DComparable point = new Point2DComparable(randX, randY);
+      if (!prevPoints.contains(point)) {
+        addBoulder(randX, randY);
+        prevPoints.add(point);
+      } else {
+        i--;
+      }
     }
 
     for (int i = 0; i < width; i++) {

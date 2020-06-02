@@ -102,8 +102,8 @@ public class GameManager implements Runnable {
 
     int w = gameData.getGameMap().getWidth();
     int h = gameData.getGameMap().getHeight();
-    double x = (int)(Math.random() * w/2 + w/4);
-    double y = (int)(Math.random() * h/2 + h/4);
+    double x = (int)(Math.random() * .2*w + .4*w);
+    double y = (int)(Math.random() * .2*h + .4*h);
     gameData.addPlayer(new Player(x, y, curId));
     broadcast(Data.ADD_PLAYER, gameData.getPlayerMap().get(curId));
 
